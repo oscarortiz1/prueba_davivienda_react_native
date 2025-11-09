@@ -9,18 +9,20 @@ import {
   Share,
   Alert,
 } from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { DrawerActions } from '@react-navigation/native';
 import { useAuthStore } from '../stores/authStore';
 import { useSurveyStore } from '../stores/surveyStore';
 import { useToastStore } from '../stores/toastStore';
 import { useAuth } from '../hooks/useAuth';
 import { CustomButton } from '../components/CustomButton';
 import { Survey } from '../../core/domain/entities/Survey';
+import { Navbar } from '../components/Navbar';
+import { MainStackParamList } from '../navigation/types';
 
-interface MySurveysScreenProps {
-  navigation: any;
-}
+type Props = NativeStackScreenProps<MainStackParamList, 'MySurveys'>;
 
-const MySurveysScreen: React.FC<MySurveysScreenProps> = ({ navigation }) => {
+const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
   const user = useAuthStore((state) => state.user);
   const surveys = useSurveyStore((state) => state.surveys);
   const publishedSurveys = useSurveyStore((state) => state.publishedSurveys);
@@ -48,11 +50,9 @@ const MySurveysScreen: React.FC<MySurveysScreenProps> = ({ navigation }) => {
     try {
       await Promise.all([refreshMySurveys(), refreshPublishedSurveys()]);
     } catch (error: any) {
-      // Si es 403, el usuario no tiene permisos o el token expiró
-      if (error.response?.status === 403) {
-        showToast('Sesión expirada. Por favor inicia sesión nuevamente.', 'error');
-        // El interceptor ya manejó el logout en caso de 401/403
-      } else {
+      // Don't show toast for 401/403 - interceptor handles logout
+      const status = error?.response?.status;
+      if (status !== 401 && status !== 403) {
         showToast(error.message || 'Error al cargar encuestas', 'error');
       }
     }
@@ -230,7 +230,7 @@ const MySurveysScreen: React.FC<MySurveysScreenProps> = ({ navigation }) => {
         ) : (
           <CustomButton
             title={isExpired(survey.expiresAt) ? 'Encuesta expirada' : 'Responder'}
-            onPress={() => navigation.navigate('SurveyResponse', { surveyId: survey.id })}
+            onPress={() => navigation.navigate('SurveyEditor', { surveyId: survey.id })}
             disabled={isExpired(survey.expiresAt)}
             style={{ flex: 1 }}
           />
@@ -241,6 +241,13 @@ const MySurveysScreen: React.FC<MySurveysScreenProps> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      {/* Navbar */}
+      <Navbar
+        title="Mis Encuestas"
+        onMenuPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+        showBackButton={false}
+      />
+      
       <ScrollView
         style={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
@@ -251,7 +258,7 @@ const MySurveysScreen: React.FC<MySurveysScreenProps> = ({ navigation }) => {
             <Text style={styles.sectionTitle}>Mis encuestas creadas</Text>
             <CustomButton
               title="+ Nueva"
-              onPress={() => navigation.navigate('surveyEditor', { surveyId: 'new' })}
+              onPress={() => navigation.navigate('SurveyEditor', { surveyId: 'new' })}
             />
           </View>
           {loading && mySurveys.length === 0 ? (

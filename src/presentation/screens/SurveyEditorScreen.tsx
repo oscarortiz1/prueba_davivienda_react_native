@@ -9,15 +9,15 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSurveyStore } from '../stores/surveyStore';
 import { useToastStore } from '../stores/toastStore';
 import { CustomButton } from '../components/CustomButton';
+import { Navbar } from '../components/Navbar';
 import { Question, QuestionType } from '../../core/domain/entities/Survey';
+import { MainStackParamList } from '../navigation/types';
 
-interface SurveyEditorScreenProps {
-  route: any;
-  navigation: any;
-}
+type Props = NativeStackScreenProps<MainStackParamList, 'SurveyEditor'>;
 
 const QUESTION_TYPES: { value: QuestionType; label: string }[] = [
   { value: 'text', label: '📝 Texto' },
@@ -27,9 +27,9 @@ const QUESTION_TYPES: { value: QuestionType; label: string }[] = [
   { value: 'scale', label: '📊 Escala' },
 ];
 
-const SurveyEditorScreen: React.FC<SurveyEditorScreenProps> = ({ route, navigation }) => {
-  const { surveyId } = route.params;
-  const isNew = surveyId === 'new';
+const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
+  const { surveyId } = route.params || {};
+  const isNew = !surveyId || surveyId === 'new';
 
   const getSurvey = useSurveyStore((state) => state.getSurvey);
   const createSurvey = useSurveyStore((state) => state.createSurvey);
@@ -45,16 +45,18 @@ const SurveyEditorScreen: React.FC<SurveyEditorScreenProps> = ({ route, navigati
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [currentSurveyId, setCurrentSurveyId] = useState<string | null>(isNew ? null : surveyId);
+  const [currentSurveyId, setCurrentSurveyId] = useState<string | null>(isNew ? null : surveyId || null);
   const [isPublished, setIsPublished] = useState(false);
 
   useEffect(() => {
-    if (!isNew) {
+    if (!isNew && surveyId) {
       loadSurvey();
     }
   }, [surveyId]);
 
   const loadSurvey = async () => {
+    if (!surveyId) return;
+    
     try {
       setLoading(true);
       const survey = await getSurvey(surveyId);
@@ -204,15 +206,28 @@ const SurveyEditorScreen: React.FC<SurveyEditorScreenProps> = ({ route, navigati
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#DC2626" />
-        <Text style={styles.loadingText}>Cargando encuesta...</Text>
+      <View style={styles.container}>
+        <Navbar
+          title={isNew ? 'Nueva Encuesta' : 'Editar Encuesta'}
+          onBackPress={() => navigation.goBack()}
+          showBackButton={true}
+        />
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#DC2626" />
+          <Text style={styles.loadingText}>Cargando encuesta...</Text>
+        </View>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      <Navbar
+        title={isNew ? 'Nueva Encuesta' : 'Editar Encuesta'}
+        onBackPress={() => navigation.goBack()}
+        showBackButton={true}
+      />
+      
       <ScrollView style={styles.content}>
         <View style={styles.section}>
           <Text style={styles.label}>Título *</Text>

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
 interface NavbarProps {
   title: string;
-  onMenuPress: () => void;
+  onMenuPress?: () => void;
   showBackButton?: boolean;
   onBackPress?: () => void;
   rightComponent?: React.ReactNode;
@@ -23,7 +23,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <TouchableOpacity style={styles.iconButton} onPress={onBackPress}>
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
-        ) : (
+        ) : onMenuPress ? (
           <TouchableOpacity style={styles.iconButton} onPress={onMenuPress}>
             <View style={styles.hamburger}>
               <View style={styles.hamburgerLine} />
@@ -31,7 +31,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <View style={styles.hamburgerLine} />
             </View>
           </TouchableOpacity>
-        )}
+        ) : null}
       </View>
 
       <View style={styles.centerSection}>

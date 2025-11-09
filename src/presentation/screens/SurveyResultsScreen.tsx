@@ -7,17 +7,17 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSurveyStore } from '../stores/surveyStore';
 import { useToastStore } from '../stores/toastStore';
+import { Navbar } from '../components/Navbar';
 import { surveyDataSource } from '../../data/datasources/survey.datasource';
 import { ResponseDetailResponse } from '../../data/models/survey.dto';
+import { MainStackParamList } from '../navigation/types';
 
-interface SurveyResultsScreenProps {
-  route: any;
-  navigation: any;
-}
+type Props = NativeStackScreenProps<MainStackParamList, 'SurveyResults'>;
 
-const SurveyResultsScreen: React.FC<SurveyResultsScreenProps> = ({ route, navigation }) => {
+const SurveyResultsScreen: React.FC<Props> = ({ route, navigation }) => {
   const { surveyId } = route.params;
   const currentSurvey = useSurveyStore((state) => state.currentSurvey);
   const getSurvey = useSurveyStore((state) => state.getSurvey);
@@ -51,17 +51,31 @@ const SurveyResultsScreen: React.FC<SurveyResultsScreenProps> = ({ route, naviga
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#DC2626" />
-        <Text style={styles.loadingText}>Cargando resultados...</Text>
+      <View style={styles.container}>
+        <Navbar
+          title="Resultados"
+          onBackPress={() => navigation.goBack()}
+          showBackButton={true}
+        />
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#DC2626" />
+          <Text style={styles.loadingText}>Cargando resultados...</Text>
+        </View>
       </View>
     );
   }
 
   if (!currentSurvey) {
     return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>No se pudo cargar la encuesta</Text>
+      <View style={styles.container}>
+        <Navbar
+          title="Resultados"
+          onBackPress={() => navigation.goBack()}
+          showBackButton={true}
+        />
+        <View style={styles.centerContainer}>
+          <Text style={styles.errorText}>No se pudo cargar la encuesta</Text>
+        </View>
       </View>
     );
   }
@@ -74,6 +88,12 @@ const SurveyResultsScreen: React.FC<SurveyResultsScreenProps> = ({ route, naviga
 
   return (
     <View style={styles.container}>
+      <Navbar
+        title="Resultados"
+        onBackPress={() => navigation.goBack()}
+        showBackButton={true}
+      />
+      
       <ScrollView style={styles.content}>
         <View style={styles.summaryCard}>
           <Text style={styles.surveyTitle}>{currentSurvey.title}</Text>

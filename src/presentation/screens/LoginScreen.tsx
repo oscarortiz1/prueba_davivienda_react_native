@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { CustomInput } from '../components/CustomInput';
 import { CustomButton } from '../components/CustomButton';
 import { useAuth } from '../hooks/useAuth';
 import { validateEmail, validatePassword } from '../../shared/utils/validations';
 import { commonStyles } from '../theme/styles';
 import { COLORS } from '../../shared/constants/colors';
+import { AuthStackParamList } from '../navigation/types';
 
-interface LoginScreenProps {
-  onNavigateToRegister: () => void;
-  onLoginSuccess: () => void;
-}
+type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
-export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister, onLoginSuccess }) => {
+export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({ email: '', password: '' });
@@ -48,7 +47,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister, 
 
     try {
       await login(email, password);
-      onLoginSuccess();
+      // Navigation is handled automatically by App.tsx based on auth state
     } catch (error) {
       // Error already handled by useAuth hook with toast
     }
@@ -95,7 +94,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister, 
           </View>
 
           {/* Link de registro */}
-          <TouchableOpacity style={styles.linkButton} onPress={onNavigateToRegister}>
+          <TouchableOpacity style={styles.linkButton} onPress={() => navigation.navigate('Register')}>
             <Text style={styles.linkText}>
               ¿No tienes cuenta? Regístrate
             </Text>

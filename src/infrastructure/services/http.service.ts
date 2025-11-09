@@ -55,17 +55,22 @@ class HttpClient {
       (response) => response,
       async (error: AxiosError) => {
         if (error.response) {
+          const isAuthEndpoint = error.config?.url?.includes('/auth/');
+          
           // Handle specific HTTP status codes
           switch (error.response.status) {
             case 401:
             case 403:
-              // Unauthorized/Forbidden - Clear token and user state
-              await storageService.remove(STORAGE_KEYS.AUTH_TOKEN);
-              await storageService.remove(STORAGE_KEYS.USER_DATA);
-              
-              // Clear user from store if available
-              if (this.authStore) {
-                this.authStore.getState().logout();
+              // Don't clear auth on login/register endpoints
+              if (!isAuthEndpoint) {
+                // Unauthorized/Forbidden - Clear token and user state
+                await storageService.remove(STORAGE_KEYS.AUTH_TOKEN);
+                await storageService.remove(STORAGE_KEYS.USER_DATA);
+                
+                // Clear user from store if available
+                if (this.authStore) {
+                  this.authStore.getState().logout();
+                }
               }
               break;
           }
