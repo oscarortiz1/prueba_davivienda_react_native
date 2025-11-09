@@ -71,8 +71,8 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleCopyLink = async (surveyId: string) => {
     try {
-      // In a real app, you'd have a proper deep link or web URL
-      const link = `https://yourapp.com/survey/${surveyId}`;
+      // Generate the correct survey response link
+      const link = `http://localhost:5173/survey/${surveyId}/respond`;
       await Share.share({
         message: `Responde esta encuesta: ${link}`,
         url: link,
