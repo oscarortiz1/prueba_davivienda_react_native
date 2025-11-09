@@ -10,6 +10,7 @@ import {
   Image,
   Platform,
   Modal,
+  Alert,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSurveyStore } from '../stores/surveyStore';
@@ -24,7 +25,6 @@ type Props = NativeStackScreenProps<MainStackParamList, 'SurveyEditor'>;
 
 const QUESTION_TYPES: { value: QuestionType; label: string }[] = [
   { value: 'text', label: '📝 Texto corto' },
-  { value: 'textarea', label: '📄 Texto largo' },
   { value: 'multiple-choice', label: '⭕ Opción múltiple' },
   { value: 'checkbox', label: '☑️ Casillas' },
   { value: 'dropdown', label: '📋 Desplegable' },
@@ -60,6 +60,31 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [questionToDelete, setQuestionToDelete] = useState<{ id: string; title: string } | null>(null);
 
+  // Convertir tipo de pregunta al formato del backend (MAYÚSCULAS)
+  const mapTypeToBackend = (type: QuestionType): string => {
+    const mapping: Record<QuestionType, string> = {
+      'text': 'TEXT',
+      'textarea': 'TEXT',
+      'multiple-choice': 'MULTIPLE_CHOICE',
+      'checkbox': 'CHECKBOX',
+      'dropdown': 'DROPDOWN',
+      'scale': 'SCALE',
+    };
+    return mapping[type] || 'TEXT';
+  };
+
+  // Convertir tipo de pregunta del backend al formato del frontend (minúsculas)
+  const mapTypeFromBackend = (type: string): QuestionType => {
+    const mapping: Record<string, QuestionType> = {
+      'TEXT': 'text',
+      'MULTIPLE_CHOICE': 'multiple-choice',
+      'CHECKBOX': 'checkbox',
+      'DROPDOWN': 'dropdown',
+      'SCALE': 'scale',
+    };
+    return mapping[type] || 'text';
+  };
+
   useEffect(() => {
     if (!isNew && surveyId) {
       loadSurvey();
@@ -83,7 +108,14 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
       setTitle(survey.title);
       setDescription(survey.description);
       setExpiresAt(survey.expiresAt ? new Date(survey.expiresAt).toISOString().split('T')[0] : '');
-      setQuestions(survey.questions.sort((a, b) => a.order - b.order));
+
+      // Mapear los tipos de preguntas del backend al frontend
+      const mappedQuestions = survey.questions.map(q => ({
+        ...q,
+        type: mapTypeFromBackend(q.type as string) as QuestionType
+      }));
+      setQuestions(mappedQuestions.sort((a, b) => a.order - b.order));
+
       setIsPublished(survey.isPublished);
       setCurrentSurveyId(survey.id);
 
@@ -193,19 +225,6 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   };
 
-  // Convertir tipo de pregunta al formato del backend (MAYÚSCULAS)
-  const mapTypeToBackend = (type: QuestionType): string => {
-    const mapping: Record<QuestionType, string> = {
-      'text': 'TEXT',
-      'textarea': 'TEXT',
-      'multiple-choice': 'MULTIPLE_CHOICE',
-      'checkbox': 'CHECKBOX',
-      'dropdown': 'DROPDOWN',
-      'scale': 'SCALE',
-    };
-    return mapping[type] || 'TEXT';
-  };
-
   const handleAddQuestion = async () => {
     if (!currentSurveyId) {
       showToast('Guarda la encuesta primero', 'info');
@@ -227,7 +246,12 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
       console.log('✅ Pregunta agregada. Encuesta actualizada:', updatedSurvey);
       console.log('📋 Número de preguntas:', updatedSurvey.questions.length);
 
-      const sortedQuestions = updatedSurvey.questions.sort((a, b) => a.order - b.order);
+      // Mapear los tipos de preguntas del backend al frontend
+      const mappedQuestions = updatedSurvey.questions.map(q => ({
+        ...q,
+        type: mapTypeFromBackend(q.type as string) as QuestionType
+      }));
+      const sortedQuestions = mappedQuestions.sort((a, b) => a.order - b.order);
       setQuestions(sortedQuestions);
       showToast('Pregunta agregada', 'success');
     } catch (error: any) {
@@ -244,14 +268,28 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
     if (!currentSurveyId) return;
 
     try {
-      // Mapear el tipo al formato del backend (MAYÚSCULAS) si está presente
-      const mappedUpdates: any = { ...updates };
-      if (updates.type) {
-        mappedUpdates.type = mapTypeToBackend(updates.type);
-      }
+      // Obtener la pregunta actual completa
+      const currentQuestion = questions.find(q => q.id === questionId);
+      if (!currentQuestion) return;
 
-      const updatedSurvey = await updateQuestion(currentSurveyId, questionId, mappedUpdates);
-      setQuestions(updatedSurvey.questions.sort((a, b) => a.order - b.order));
+      // Construir el objeto completo con todos los campos requeridos
+      const fullUpdate = {
+        title: updates.title ?? currentQuestion.title,
+        type: mapTypeToBackend(updates.type ?? currentQuestion.type),
+        required: updates.required ?? currentQuestion.required,
+        order: updates.order ?? currentQuestion.order,
+        options: updates.options ?? currentQuestion.options,
+        imageUrl: updates.imageUrl ?? currentQuestion.imageUrl,
+      };
+
+      const updatedSurvey = await updateQuestion(currentSurveyId, questionId, fullUpdate);
+
+      // Mapear los tipos de preguntas del backend al frontend
+      const mappedQuestions = updatedSurvey.questions.map(q => ({
+        ...q,
+        type: mapTypeFromBackend(q.type as string) as QuestionType
+      }));
+      setQuestions(mappedQuestions.sort((a, b) => a.order - b.order));
     } catch (error: any) {
       console.error("❌ Error al actualizar pregunta:", error);
       console.error("❌ Response data:", error.response?.data);
@@ -275,7 +313,13 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
     try {
       console.log("🗑️ Eliminando pregunta:", questionToDelete.id);
       const updatedSurvey = await deleteQuestion(currentSurveyId, questionToDelete.id);
-      setQuestions(updatedSurvey.questions.sort((a, b) => a.order - b.order));
+
+      // Mapear los tipos de preguntas del backend al frontend
+      const mappedQuestions = updatedSurvey.questions.map(q => ({
+        ...q,
+        type: mapTypeFromBackend(q.type as string) as QuestionType
+      }));
+      setQuestions(mappedQuestions.sort((a, b) => a.order - b.order));
       showToast('Pregunta eliminada', 'success');
       setDeleteModalVisible(false);
       setQuestionToDelete(null);
@@ -328,24 +372,35 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const handleTypeChange = async (questionId: string, newType: QuestionType) => {
+    // Actualizar el estado local primero
+    const updatedQuestions = questions.map(q =>
+      q.id === questionId ? { ...q, type: newType } : q
+    );
+    setQuestions(updatedQuestions);
+
     // Si el nuevo tipo requiere opciones y no las tiene, inicializar con opciones por defecto
+    let optionsToSet: string[] | undefined;
+
     if (TYPES_WITH_OPTIONS.includes(newType)) {
       const question = questions.find(q => q.id === questionId);
       if (!question?.options || question.options.length === 0) {
+        optionsToSet = ['Opción 1', 'Opción 2'];
         setEditingOptions({
           ...editingOptions,
-          [questionId]: ['Opción 1', 'Opción 2']
+          [questionId]: optionsToSet
         });
       }
     } else if (newType === 'scale') {
       // Para escala, usar opciones del 1 al 5
+      optionsToSet = ['1', '2', '3', '4', '5'];
       setEditingOptions({
         ...editingOptions,
-        [questionId]: ['1', '2', '3', '4', '5']
+        [questionId]: optionsToSet
       });
     }
 
-    await handleUpdateQuestion(questionId, { type: newType });
+    // Actualizar en el backend
+    await handleUpdateQuestion(questionId, { type: newType, options: optionsToSet });
   };
 
   if (loading) {
