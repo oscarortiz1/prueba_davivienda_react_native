@@ -177,13 +177,17 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const handlePublish = async () => {
+    console.log('[Publicar] currentSurveyId:', currentSurveyId);
     if (!currentSurveyId) {
       showToast('Guarda la encuesta primero', 'info');
+      console.log('[Publicar] Encuesta no guardada');
       return;
     }
 
+    console.log('[Publicar] preguntas:', questions);
     if (questions.length === 0) {
       showToast('Agrega al menos una pregunta', 'error');
+      console.log('[Publicar] Sin preguntas');
       return;
     }
 
@@ -197,32 +201,25 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
 
     if (invalidQuestions.length > 0) {
       showToast('Las preguntas de opción múltiple, casillas y desplegables deben tener al menos 2 opciones', 'error');
+      console.log('[Publicar] Preguntas inválidas:', invalidQuestions);
       return;
     }
 
-    Alert.alert(
-      'Publicar encuesta',
-      '¿Estás seguro de publicar esta encuesta? Los usuarios podrán responderla.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Publicar',
-          onPress: async () => {
-            try {
-              setSaving(true);
-              await publishSurvey(currentSurveyId);
-              setIsPublished(true);
-              showToast('Encuesta publicada exitosamente', 'success');
-              navigation.goBack();
-            } catch (error: any) {
-              showToast(error.message || 'Error al publicar', 'error');
-            } finally {
-              setSaving(false);
-            }
-          },
-        },
-      ]
-    );
+    // Llamada directa al servicio para depuración
+    try {
+      setSaving(true);
+      console.log('[Publicar] Llamando publishSurvey con id:', currentSurveyId);
+      const result = await publishSurvey(currentSurveyId);
+      console.log('[Publicar] Resultado:', result);
+      setIsPublished(true);
+      showToast('Encuesta publicada exitosamente', 'success');
+      navigation.goBack();
+    } catch (error: any) {
+      showToast(error.message || 'Error al publicar', 'error');
+      console.log('[Publicar] Error:', error);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleAddQuestion = async () => {
