@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { CustomButton } from '../components/CustomButton';
-import { useAuthStore } from '../stores/authStore';
+import { useAuth } from '../hooks/useAuth';
 import { commonStyles } from '../theme/styles';
 import { COLORS } from '../../shared/constants/colors';
 
@@ -10,10 +10,10 @@ interface HomeScreenProps {
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
-  const { user, logout } = useAuthStore();
+  const { user, logout } = useAuth();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     onLogout();
   };
 

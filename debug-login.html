@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Login - Davivienda</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #ED1C24;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #ED1C24;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-login {
+            background: #ED1C24;
+            color: white;
+        }
+        .btn-login:hover { background: #c91a21; }
+        .btn-register {
+            background: #4CAF50;
+            color: white;
+        }
+        .btn-register:hover { background: #45a049; }
+        .btn-clear {
+            background: #f0f0f0;
+            color: #333;
+        }
+        .btn-clear:hover { background: #e0e0e0; }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .log-container {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .log-entry {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-left: 3px solid #666;
+            padding-left: 12px;
+        }
+        .log-info { border-left-color: #4CAF50; color: #4CAF50; }
+        .log-error { border-left-color: #f44336; color: #f44336; }
+        .log-warning { border-left-color: #ff9800; color: #ff9800; }
+        .log-success { border-left-color: #00bcd4; color: #00bcd4; }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        .status-ok { background: #4CAF50; color: white; }
+        .status-error { background: #f44336; color: white; }
+        pre {
+            background: #2d2d2d;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug Login Tool</h1>
+        <p class="subtitle">Herramienta de diagnóstico para probar la autenticación</p>
+
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="email" placeholder="ejemplo@email.com" value="test@example.com">
+        </div>
+
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="password" placeholder="Tu contraseña" value="password123">
+        </div>
+
+        <div class="form-group">
+            <label>Backend URL</label>
+            <input type="text" id="apiUrl" value="http://localhost:8080/api">
+        </div>
+
+        <div class="button-group">
+            <button class="btn-register" onclick="testRegister()">📝 Registrar Usuario</button>
+            <button class="btn-login" onclick="testLogin()">🔐 Test Login</button>
+            <button class="btn-clear" onclick="clearLogs()">🗑️ Limpiar</button>
+        </div>
+
+        <h3 style="margin-bottom: 15px; color: #333;">📊 Logs de Diagnóstico</h3>
+        <div class="log-container" id="logs">
+            <div class="log-entry log-info">
+                💡 Listo para probar. Ingresa tus credenciales y presiona un botón.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function addLog(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.innerHTML = message;
+            logs.appendChild(entry);
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '<div class="log-entry log-info">💡 Logs limpiados.</div>';
+        }
+
+        async function testRegister() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const apiUrl = document.getElementById('apiUrl').value;
+
+            if (!email || !password) {
+                addLog('❌ Por favor ingresa email y password', 'error');
+                return;
+            }
+
+            addLog(`<strong>📝 INICIANDO REGISTRO</strong>`, 'info');
+            addLog(`Email: ${email}`, 'info');
+            addLog(`Password: ${'*'.repeat(password.length)}`, 'info');
+
+            try {
+                const startTime = Date.now();
+                const response = await fetch(`${apiUrl}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: 'Test User',
+                        email: email,
+                        password: password
+                    })
+                });
+
+                const duration = Date.now() - startTime;
+                const data = await response.json();
+
+                if (response.ok) {
+                    addLog(`<strong>✅ REGISTRO EXITOSO (${duration}ms)</strong>`, 'success');
+                    addLog(`<pre>${JSON.stringify(data, null, 2)}</pre>`, 'success');
+                    addLog(`Token recibido: ${data.token?.substring(0, 50)}...`, 'success');
+                    addLog(`🎉 Ahora puedes hacer login con estas credenciales`, 'success');
+                } else {
+                    addLog(`<strong>❌ REGISTRO FALLÓ</strong> <span class="status status-error">${response.status}</span>`, 'error');
+                    addLog(`<pre>${JSON.stringify(data, null, 2)}</pre>`, 'error');
+                    
+                    if (response.status === 409 || data.message?.includes('ya existe')) {
+                        addLog(`💡 El usuario ya existe. Intenta hacer LOGIN en vez de registro.`, 'warning');
+                    }
+                }
+            } catch (error) {
+                addLog(`<strong>❌ ERROR DE RED</strong>`, 'error');
+                addLog(`${error.message}`, 'error');
+                addLog(`💡 Verifica que el backend esté corriendo en: ${apiUrl}`, 'warning');
+            }
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const apiUrl = document.getElementById('apiUrl').value;
+
+            if (!email || !password) {
+                addLog('❌ Por favor ingresa email y password', 'error');
+                return;
+            }
+
+            addLog(`<strong>🔐 INICIANDO LOGIN</strong>`, 'info');
+            addLog(`Email: ${email}`, 'info');
+            addLog(`Password: ${'*'.repeat(password.length)}`, 'info');
+
+            try {
+                const startTime = Date.now();
+                const response = await fetch(`${apiUrl}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                });
+
+                const duration = Date.now() - startTime;
+                const data = await response.json();
+
+                if (response.ok) {
+                    addLog(`<strong>✅ LOGIN EXITOSO (${duration}ms)</strong>`, 'success');
+                    addLog(`<pre>${JSON.stringify(data, null, 2)}</pre>`, 'success');
+                    addLog(`Token recibido: ${data.token?.substring(0, 50)}...`, 'success');
+                    
+                    // Test authenticated endpoint
+                    addLog(`<strong>🔒 Probando endpoint autenticado (/auth/me)...</strong>`, 'info');
+                    const meResponse = await fetch(`${apiUrl}/auth/me`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${data.token}`,
+                            'Content-Type': 'application/json',
+                        }
+                    });
+
+                    if (meResponse.ok) {
+                        const meData = await meResponse.json();
+                        addLog(`<strong>✅ Endpoint autenticado funciona correctamente</strong>`, 'success');
+                        addLog(`<pre>${JSON.stringify(meData, null, 2)}</pre>`, 'success');
+                    } else {
+                        addLog(`<strong>⚠️ Endpoint autenticado falló (${meResponse.status})</strong>`, 'warning');
+                    }
+
+                    addLog(`<strong>🎉 TODO FUNCIONA CORRECTAMENTE</strong>`, 'success');
+                    addLog(`Puedes usar estas credenciales en tu app React Native`, 'success');
+                } else {
+                    addLog(`<strong>❌ LOGIN FALLÓ</strong> <span class="status status-error">${response.status}</span>`, 'error');
+                    addLog(`<pre>${JSON.stringify(data, null, 2)}</pre>`, 'error');
+                    
+                    if (response.status === 401) {
+                        addLog(`<strong>💡 DIAGNÓSTICO DEL ERROR 401:</strong>`, 'warning');
+                        addLog(`1. ¿El email es correcto? (sensible a mayúsculas/minúsculas)`, 'warning');
+                        addLog(`2. ¿La contraseña es correcta? (sensible a mayúsculas/minúsculas)`, 'warning');
+                        addLog(`3. ¿El usuario existe en Firebase?`, 'warning');
+                        addLog(`4. Intenta REGISTRAR primero si es un usuario nuevo`, 'warning');
+                    }
+                }
+            } catch (error) {
+                addLog(`<strong>❌ ERROR DE RED</strong>`, 'error');
+                addLog(`${error.message}`, 'error');
+                addLog(`💡 Verifica que el backend esté corriendo en: ${apiUrl}`, 'warning');
+            }
+        }
+
+        // Test inicial
+        addLog(`<strong>🚀 Herramienta de Debug Lista</strong>`, 'info');
+        addLog(`Backend configurado en: ${document.getElementById('apiUrl').value}`, 'info');
+        addLog(`<hr style="border: 1px solid #444; margin: 10px 0;">`, 'info');
+    </script>
+</body>
+</html>

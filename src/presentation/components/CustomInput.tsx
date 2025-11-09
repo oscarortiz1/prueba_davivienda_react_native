@@ -9,7 +9,7 @@ interface CustomInputProps extends TextInputProps {
 
 export const CustomInput: React.FC<CustomInputProps> = ({ error, style, ...props }) => {
   return (
-    <View>
+    <View style={styles.container}>
       <TextInput
         style={[
           commonStyles.input,
@@ -19,7 +19,13 @@ export const CustomInput: React.FC<CustomInputProps> = ({ error, style, ...props
         placeholderTextColor={COLORS.gray}
         {...props}
       />
-      {error && <Text style={commonStyles.errorText}>{error}</Text>}
+      {error ? <Text style={commonStyles.errorText}>{error}</Text> : null}
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    marginBottom: 0,
+  },
+});
