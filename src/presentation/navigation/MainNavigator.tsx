@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import MySurveysScreen from '../screens/MySurveysScreen';
 import SurveyEditorScreen from '../screens/SurveyEditorScreen';
 import SurveyResultsScreen from '../screens/SurveyResultsScreen';
+import SurveyResponseScreen from '../screens/SurveyResponseScreen';
 import { MainStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
@@ -26,6 +27,10 @@ export const MainNavigator: React.FC = () => {
       <Stack.Screen 
         name="SurveyResults" 
         component={SurveyResultsScreen}
+      />
+      <Stack.Screen 
+        name="SurveyResponse" 
+        component={SurveyResponseScreen}
       />
     </Stack.Navigator>
   );

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSurveyStore } from '../stores/surveyStore';
+import { useAuthStore } from '../stores/authStore';
 import { useToastStore } from '../stores/toastStore';
 import { CustomButton } from '../components/CustomButton';
 import { Navbar } from '../components/Navbar';
@@ -32,6 +33,7 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
   const { surveyId } = route.params || {};
   const isNew = !surveyId || surveyId === 'new';
 
+  const user = useAuthStore((state) => state.user);
   const getSurvey = useSurveyStore((state) => state.getSurvey);
   const createSurvey = useSurveyStore((state) => state.createSurvey);
   const updateSurvey = useSurveyStore((state) => state.updateSurvey);
@@ -61,6 +63,14 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
     try {
       setLoading(true);
       const survey = await getSurvey(surveyId);
+      
+      // Verificar si el usuario es el creador
+      if (survey.createdBy !== user?.id) {
+        showToast('No tienes permiso para editar esta encuesta', 'error');
+        navigation.goBack();
+        return;
+      }
+      
       setTitle(survey.title);
       setDescription(survey.description);
       setQuestions(survey.questions.sort((a, b) => a.order - b.order));

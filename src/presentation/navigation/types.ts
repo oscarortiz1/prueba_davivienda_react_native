@@ -13,6 +13,7 @@ export type MainStackParamList = {
   MySurveys: undefined;
   SurveyEditor: { surveyId?: string };
   SurveyResults: { surveyId: string };
+  SurveyResponse: { surveyId: string };
 };
 
 // Drawer Navigation
@@ -28,3 +29,4 @@ export type DrawerScreenNavigationProp = DrawerNavigationProp<DrawerParamList>;
 // Route Props Types
 export type SurveyEditorRouteProp = RouteProp<MainStackParamList, 'SurveyEditor'>;
 export type SurveyResultsRouteProp = RouteProp<MainStackParamList, 'SurveyResults'>;
+export type SurveyResponseRouteProp = RouteProp<MainStackParamList, 'SurveyResponse'>;

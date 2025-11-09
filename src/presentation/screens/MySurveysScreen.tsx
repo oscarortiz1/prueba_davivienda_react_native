@@ -266,7 +266,7 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
         ) : (
           <CustomButton
             title={isExpired(survey.expiresAt) ? 'Encuesta expirada' : 'Responder'}
-            onPress={() => navigation.navigate('SurveyEditor', { surveyId: survey.id })}
+            onPress={() => navigation.navigate('SurveyResponse', { surveyId: survey.id })}
             disabled={isExpired(survey.expiresAt)}
             style={{ flex: 1 }}
           />
