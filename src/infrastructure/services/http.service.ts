@@ -84,29 +84,33 @@ class HttpClient {
   /**
    * GET request
    */
-  async get<T>(url: string) {
-    return this.client.get<T>(url);
+  async get<T>(url: string): Promise<T> {
+    const response = await this.client.get<T>(url);
+    return response.data;
   }
 
   /**
    * POST request
    */
-  async post<T, D = any>(url: string, data?: D) {
-    return this.client.post<T>(url, data);
+  async post<T, D = any>(url: string, data?: D): Promise<T> {
+    const response = await this.client.post<T>(url, data);
+    return response.data;
   }
 
   /**
    * PUT request
    */
-  async put<T, D = any>(url: string, data?: D) {
-    return this.client.put<T>(url, data);
+  async put<T, D = any>(url: string, data?: D): Promise<T> {
+    const response = await this.client.put<T>(url, data);
+    return response.data;
   }
 
   /**
    * DELETE request
    */
-  async delete<T>(url: string) {
-    return this.client.delete<T>(url);
+  async delete<T>(url: string): Promise<T> {
+    const response = await this.client.delete<T>(url);
+    return response.data;
   }
 }
 

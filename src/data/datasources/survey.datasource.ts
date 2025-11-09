@@ -13,38 +13,31 @@ import {
 export const surveyDataSource = {
   // Survey CRUD
   createSurvey: async (data: CreateSurveyRequest): Promise<SurveyResponse> => {
-    const response = await httpService.post<SurveyResponse>(API_ENDPOINTS.SURVEYS.CREATE, data);
-    return response.data;
+    return await httpService.post<SurveyResponse>(API_ENDPOINTS.SURVEYS.CREATE, data);
   },
 
   getSurvey: async (id: string): Promise<SurveyResponse> => {
-    const response = await httpService.get<SurveyResponse>(API_ENDPOINTS.SURVEYS.GET_BY_ID(id));
-    return response.data;
+    return await httpService.get<SurveyResponse>(API_ENDPOINTS.SURVEYS.GET_BY_ID(id));
   },
 
   getPublicSurvey: async (id: string): Promise<SurveyResponse> => {
-    const response = await httpService.get<SurveyResponse>(API_ENDPOINTS.SURVEYS.GET_PUBLIC(id));
-    return response.data;
+    return await httpService.get<SurveyResponse>(API_ENDPOINTS.SURVEYS.GET_PUBLIC(id));
   },
 
   getAllSurveys: async (): Promise<SurveyResponse[]> => {
-    const response = await httpService.get<SurveyResponse[]>(API_ENDPOINTS.SURVEYS.GET_ALL);
-    return response.data;
+    return await httpService.get<SurveyResponse[]>(API_ENDPOINTS.SURVEYS.GET_ALL);
   },
 
   getMySurveys: async (): Promise<SurveyResponse[]> => {
-    const response = await httpService.get<SurveyResponse[]>(API_ENDPOINTS.SURVEYS.GET_MY_SURVEYS);
-    return response.data;
+    return await httpService.get<SurveyResponse[]>(API_ENDPOINTS.SURVEYS.GET_MY_SURVEYS);
   },
 
   getPublishedSurveys: async (): Promise<SurveyResponse[]> => {
-    const response = await httpService.get<SurveyResponse[]>(API_ENDPOINTS.SURVEYS.GET_PUBLISHED);
-    return response.data;
+    return await httpService.get<SurveyResponse[]>(API_ENDPOINTS.SURVEYS.GET_PUBLISHED);
   },
 
   updateSurvey: async (id: string, data: UpdateSurveyRequest): Promise<SurveyResponse> => {
-    const response = await httpService.put<SurveyResponse>(API_ENDPOINTS.SURVEYS.UPDATE(id), data);
-    return response.data;
+    return await httpService.put<SurveyResponse>(API_ENDPOINTS.SURVEYS.UPDATE(id), data);
   },
 
   deleteSurvey: async (id: string): Promise<void> => {
@@ -52,17 +45,15 @@ export const surveyDataSource = {
   },
 
   publishSurvey: async (id: string): Promise<SurveyResponse> => {
-    const response = await httpService.put<SurveyResponse>(API_ENDPOINTS.SURVEYS.PUBLISH(id));
-    return response.data;
+    return await httpService.put<SurveyResponse>(API_ENDPOINTS.SURVEYS.PUBLISH(id));
   },
 
   // Question CRUD
   addQuestion: async (surveyId: string, data: CreateQuestionRequest): Promise<SurveyResponse> => {
-    const response = await httpService.post<SurveyResponse>(
+    return await httpService.post<SurveyResponse>(
       API_ENDPOINTS.SURVEYS.ADD_QUESTION(surveyId),
       data
     );
-    return response.data;
   },
 
   updateQuestion: async (
@@ -70,33 +61,29 @@ export const surveyDataSource = {
     questionId: string,
     data: UpdateQuestionRequest
   ): Promise<SurveyResponse> => {
-    const response = await httpService.put<SurveyResponse>(
+    return await httpService.put<SurveyResponse>(
       API_ENDPOINTS.SURVEYS.UPDATE_QUESTION(surveyId, questionId),
       data
     );
-    return response.data;
   },
 
   deleteQuestion: async (surveyId: string, questionId: string): Promise<SurveyResponse> => {
-    const response = await httpService.delete<SurveyResponse>(
+    return await httpService.delete<SurveyResponse>(
       API_ENDPOINTS.SURVEYS.DELETE_QUESTION(surveyId, questionId)
     );
-    return response.data;
   },
 
   // Survey Responses
   submitResponse: async (surveyId: string, data: SubmitResponseRequest): Promise<ResponseDetailResponse> => {
-    const response = await httpService.post<ResponseDetailResponse>(
+    return await httpService.post<ResponseDetailResponse>(
       API_ENDPOINTS.SURVEYS.SUBMIT_RESPONSE(surveyId),
       data
     );
-    return response.data;
   },
 
   getSurveyResponses: async (surveyId: string): Promise<ResponseDetailResponse[]> => {
-    const response = await httpService.get<ResponseDetailResponse[]>(
+    return await httpService.get<ResponseDetailResponse[]>(
       API_ENDPOINTS.SURVEYS.GET_RESPONSES(surveyId)
     );
-    return response.data;
   },
 };
