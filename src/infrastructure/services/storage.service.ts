@@ -13,7 +13,6 @@ class StorageService {
     try {
       await AsyncStorage.setItem(key, value);
     } catch (error) {
-      console.error(`Error saving ${key} to storage:`, error);
       throw new Error(`Failed to save ${key}`);
     }
   }
@@ -25,7 +24,6 @@ class StorageService {
     try {
       return await AsyncStorage.getItem(key);
     } catch (error) {
-      console.error(`Error getting ${key} from storage:`, error);
       return null;
     }
   }
@@ -37,7 +35,6 @@ class StorageService {
     try {
       await AsyncStorage.removeItem(key);
     } catch (error) {
-      console.error(`Error removing ${key} from storage:`, error);
       throw new Error(`Failed to remove ${key}`);
     }
   }
@@ -49,7 +46,6 @@ class StorageService {
     try {
       await AsyncStorage.clear();
     } catch (error) {
-      console.error('Error clearing storage:', error);
       throw new Error('Failed to clear storage');
     }
   }

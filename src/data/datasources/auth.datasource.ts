@@ -19,21 +19,12 @@ export class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
    */
   async login(request: LoginRequest): Promise<AuthResponse> {
     try {
-      console.log('🔐 Attempting login with:', { email: request.email });
       const response = await httpClient.post<AuthResponse>(
         API_CONFIG.ENDPOINTS.AUTH.LOGIN,
         request
       );
-      console.log('✅ Login successful');
       return response;
     } catch (error: any) {
-      console.error('❌ Login error:', {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        message: error.response?.data?.message,
-        data: error.response?.data,
-      });
-      
       if (error.response?.status === 401) {
         throw new Error('Credenciales inválidas. Verifica tu email y contraseña.');
       }
@@ -51,21 +42,12 @@ export class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
    */
   async register(request: RegisterRequest): Promise<AuthResponse> {
     try {
-      console.log('📝 Attempting registration with:', { name: request.name, email: request.email });
       const response = await httpClient.post<AuthResponse>(
         API_CONFIG.ENDPOINTS.AUTH.REGISTER,
         request
       );
-      console.log('✅ Registration successful');
       return response;
     } catch (error: any) {
-      console.error('❌ Registration error:', {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        message: error.response?.data?.message,
-        data: error.response?.data,
-      });
-      
       if (error.response?.status === 400) {
         throw new Error(error.response?.data?.message || 'Datos de registro inválidos.');
       }

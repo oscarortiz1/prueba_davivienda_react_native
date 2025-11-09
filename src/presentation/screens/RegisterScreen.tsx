@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import { CustomInput } from '../components/CustomInput';
 import { CustomButton } from '../components/CustomButton';
-import { useAuthStore } from '../stores/authStore';
-import { RegisterUseCase } from '../../core/usecases/RegisterUseCase';
-import { AuthRepositoryImpl } from '../../data/repositories/AuthRepositoryImpl';
+import { useAuth } from '../hooks/useAuth';
 import { validateEmail, validatePassword, validateName } from '../../shared/utils/validations';
 import { commonStyles } from '../theme/styles';
 import { COLORS } from '../../shared/constants/colors';
@@ -20,7 +18,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigateToLogi
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({ name: '', email: '', password: '' });
   
-  const { setUser, setLoading, setError, isLoading } = useAuthStore();
+  const { register, isLoading } = useAuth();
 
   const validate = (): boolean => {
     const newErrors = { name: '', email: '', password: '' };
@@ -57,22 +55,11 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigateToLogi
   const handleRegister = async () => {
     if (!validate()) return;
 
-    setLoading(true);
-    setError(null);
-
     try {
-      const authRepository = new AuthRepositoryImpl();
-      const registerUseCase = new RegisterUseCase(authRepository);
-      const user = await registerUseCase.execute(name, email, password);
-      
-      setUser(user);
-      Alert.alert('Éxito', `Cuenta creada exitosamente! Bienvenido ${user.name}!`);
+      await register(name, email, password);
       onRegisterSuccess();
-    } catch (error: any) {
-      setError(error.message);
-      Alert.alert('Error', error.message || 'Error al registrarse');
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      // Error already handled by useAuth hook with toast
     }
   };
 

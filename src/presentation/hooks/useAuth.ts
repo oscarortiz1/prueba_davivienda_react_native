@@ -4,6 +4,7 @@
  */
 
 import { useAuthStore } from '../stores/authStore';
+import { useToastStore } from '../stores/toastStore';
 import { LoginUseCase } from '../../core/usecases/LoginUseCase';
 import { RegisterUseCase } from '../../core/usecases/RegisterUseCase';
 import { AuthRepositoryImpl } from '../../data/repositories/AuthRepositoryImpl';
@@ -14,6 +15,7 @@ const registerUseCase = new RegisterUseCase(authRepository);
 
 export const useAuth = () => {
   const { user, isLoading, error, setUser, setLoading, setError, logout: clearUser } = useAuthStore();
+  const toast = useToastStore();
 
   const login = async (email: string, password: string) => {
     setLoading(true);
@@ -22,10 +24,12 @@ export const useAuth = () => {
     try {
       const user = await loginUseCase.execute(email, password);
       setUser(user);
+      toast.success(`¡Bienvenido, ${user.name}!`);
       return user;
     } catch (err: any) {
       const errorMessage = err.message || 'Error al iniciar sesión';
       setError(errorMessage);
+      toast.error(errorMessage);
       throw err;
     } finally {
       setLoading(false);
@@ -39,10 +43,12 @@ export const useAuth = () => {
     try {
       const user = await registerUseCase.execute(name, email, password);
       setUser(user);
+      toast.success(`¡Cuenta creada exitosamente! Bienvenido, ${user.name}!`);
       return user;
     } catch (err: any) {
       const errorMessage = err.message || 'Error al registrar usuario';
       setError(errorMessage);
+      toast.error(errorMessage);
       throw err;
     } finally {
       setLoading(false);
@@ -53,8 +59,10 @@ export const useAuth = () => {
     try {
       await authRepository.logout();
       clearUser();
+      toast.info('Sesión cerrada correctamente');
     } catch (err: any) {
-      console.error('Error during logout:', err);
+      clearUser();
+      toast.info('Sesión cerrada');
     }
   };
 
@@ -66,7 +74,7 @@ export const useAuth = () => {
         setUser(currentUser);
       }
     } catch (err: any) {
-      console.error('Error checking auth status:', err);
+      // Silent fail - user will need to login
     } finally {
       setLoading(false);
     }

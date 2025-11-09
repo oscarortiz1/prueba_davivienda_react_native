@@ -54,20 +54,7 @@ class HttpClient {
               await storageService.remove(STORAGE_KEYS.AUTH_TOKEN);
               await storageService.remove(STORAGE_KEYS.USER_DATA);
               break;
-            case 403:
-              console.error('Forbidden: You do not have permission to access this resource');
-              break;
-            case 404:
-              console.error('Not Found: The requested resource was not found');
-              break;
-            case 500:
-              console.error('Server Error: Something went wrong on the server');
-              break;
           }
-        } else if (error.request) {
-          console.error('Network Error: No response received from server');
-        } else {
-          console.error('Request Error:', error.message);
         }
         
         return Promise.reject(error);

@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import { CustomInput } from '../components/CustomInput';
 import { CustomButton } from '../components/CustomButton';
-import { useAuthStore } from '../stores/authStore';
-import { LoginUseCase } from '../../core/usecases/LoginUseCase';
-import { AuthRepositoryImpl } from '../../data/repositories/AuthRepositoryImpl';
+import { useAuth } from '../hooks/useAuth';
 import { validateEmail, validatePassword } from '../../shared/utils/validations';
 import { commonStyles } from '../theme/styles';
 import { COLORS } from '../../shared/constants/colors';
@@ -19,7 +17,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister, 
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({ email: '', password: '' });
   
-  const { setUser, setLoading, setError, isLoading } = useAuthStore();
+  const { login, isLoading } = useAuth();
 
   const validate = (): boolean => {
     const newErrors = { email: '', password: '' };
@@ -48,22 +46,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister, 
   const handleLogin = async () => {
     if (!validate()) return;
 
-    setLoading(true);
-    setError(null);
-
     try {
-      const authRepository = new AuthRepositoryImpl();
-      const loginUseCase = new LoginUseCase(authRepository);
-      const user = await loginUseCase.execute(email, password);
-      
-      setUser(user);
-      Alert.alert('Éxito', `Bienvenido ${user.name}!`);
+      await login(email, password);
       onLoginSuccess();
-    } catch (error: any) {
-      setError(error.message);
-      Alert.alert('Error', error.message || 'Error al iniciar sesión');
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      // Error already handled by useAuth hook with toast
     }
   };
 
