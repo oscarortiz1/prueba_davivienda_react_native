@@ -37,26 +37,26 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [respondedSurveys, setRespondedSurveys] = useState<Set<string>>(new Set());
+  const [isCheckingResponses, setIsCheckingResponses] = useState(false);
 
   // Refresh when screen comes into focus (after returning from response screen)
   useFocusEffect(
     React.useCallback(() => {
-      console.log('🔄 MySurveys screen focused - refreshing...');
-      checkRespondedSurveys();
-    }, [user?.email, publishedSurveys])
+      const refreshAll = async () => {
+        try {
+          await refreshPublishedSurveys();
+          await checkRespondedSurveys();
+        } catch (error) {
+          // Silent error handling
+        }
+      };
+      
+      refreshAll();
+    }, [user?.email])
   );
 
   useEffect(() => {
     loadSurveys();
-    
-    // Refresh all surveys every 3 seconds for real-time updates
-    const interval = setInterval(() => {
-      refreshMySurveys().catch(() => {});
-      refreshPublishedSurveys().catch(() => {});
-      checkRespondedSurveys();
-    }, 3000);
-    
-    return () => clearInterval(interval);
   }, []);
 
   const loadSurveys = async () => {
@@ -75,35 +75,58 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const checkRespondedSurveys = async () => {
-    if (!user?.email) return;
-    
-    const responded = new Set<string>();
-    
-    // Check each published survey to see if user has responded
-    for (const survey of publishedSurveys) {
-      try {
-        const responses = await surveyDataSource.getSurveyResponses(survey.id);
-        const hasResponded = responses.some(
-          (response) => 
-            response.respondentId?.toLowerCase() === user.email?.toLowerCase()
-        );
-        
-        if (hasResponded) {
-          responded.add(survey.id);
-        }
-      } catch (error) {
-        // Ignore errors for individual surveys (might not have permission)
-        console.log(`Could not check responses for survey ${survey.id}`);
-      }
+    if (!user?.email) {
+      return;
     }
     
-    setRespondedSurveys(responded);
+    if (isCheckingResponses) {
+      return;
+    }
+    
+    setIsCheckingResponses(true);
+    
+    try {
+      const currentPublishedSurveys = await surveyDataSource.getPublishedSurveys();
+      const responded = new Set<string>();
+      
+      for (const survey of currentPublishedSurveys) {
+        try {
+          const responses = await surveyDataSource.getSurveyResponses(survey.id);
+          
+          const userEmailLower = user.email?.toLowerCase().trim();
+          
+          const hasResponded = responses.some((response) => {
+            const respondentIdLower = response.respondentId?.toLowerCase().trim();
+            return respondentIdLower === userEmailLower;
+          });
+          
+          if (hasResponded) {
+            responded.add(survey.id);
+          }
+        } catch (error: any) {
+          // Ignore errors for individual surveys
+        }
+      }
+      
+      setRespondedSurveys(responded);
+    } catch (error: any) {
+      // Silent error handling
+    } finally {
+      setIsCheckingResponses(false);
+    }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadSurveys();
-    setRefreshing(false);
+    try {
+      await refreshMySurveys();
+      await refreshPublishedSurveys();
+      await checkRespondedSurveys();
+    } catch (error) {
+      // Silent error handling
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const isExpired = (expiresAt: Date | null | undefined): boolean => {
@@ -128,9 +151,6 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleDelete = async (survey: Survey) => {
-    console.log('🗑️ [Delete] Survey ID:', survey.id);
-    
-    // Use window.confirm for web compatibility
     const confirmed = typeof window !== 'undefined' 
       ? window.confirm(`¿Estás seguro de eliminar "${survey.title}"? Esta acción no se puede deshacer.`)
       : await new Promise<boolean>((resolve) => {
@@ -145,17 +165,13 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
         });
     
     if (!confirmed) {
-      console.log('❌ [Delete] Cancelled by user');
       return;
     }
     
     try {
-      console.log('🗑️ [Delete] Calling deleteSurvey...');
       await deleteSurvey(survey.id);
-      console.log('✅ [Delete] Survey deleted successfully');
       showToast('Encuesta eliminada', 'success');
     } catch (error: any) {
-      console.error('❌ [Delete] Error:', error);
       showToast(error.message || 'Error al eliminar', 'error');
     }
   };

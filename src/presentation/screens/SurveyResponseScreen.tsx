@@ -67,9 +67,6 @@ const SurveyResponseScreen: React.FC<Props> = ({ route, navigation }) => {
           options: q.options || [],
         })),
       };
-
-      console.log('Survey loaded:', normalizedSurvey);
-      console.log('Questions:', normalizedSurvey.questions);
       
       setSurvey(normalizedSurvey);
     } catch (error: any) {
@@ -81,19 +78,11 @@ const SurveyResponseScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const handleSubmit = async () => {
-    console.log('📤 Submitting survey response...');
-    console.log('📤 Survey ID:', surveyId);
-    console.log('📤 User:', user);
-    console.log('📤 Respondent Email:', respondentEmail);
-    console.log('📤 Current Answers:', answers);
-
-    // Validar email si el usuario no está autenticado
     if (!user && !respondentEmail.trim()) {
       showToast('Ingresa tu correo electrónico', 'error');
       return;
     }
 
-    // Validar preguntas requeridas
     const missingRequired = survey.questions.some(
       (q: Question) => q.required && !answers[q.id]
     );
@@ -111,13 +100,10 @@ const SurveyResponseScreen: React.FC<Props> = ({ route, navigation }) => {
         let value: string[];
 
         if (!answer) {
-          // Si no hay respuesta, enviar array vacío
           value = [];
         } else if (Array.isArray(answer)) {
-          // Si ya es un array, usarlo directamente
           value = answer;
         } else {
-          // Si es un string, convertirlo a array
           value = [answer];
         }
 
@@ -127,30 +113,21 @@ const SurveyResponseScreen: React.FC<Props> = ({ route, navigation }) => {
         };
       });
 
-      console.log('📤 Formatted Answers:', formattedAnswers);
-
       const requestData = {
         respondentEmail: user?.email || respondentEmail,
         answers: formattedAnswers,
       };
 
-      console.log('📤 Request Data:', requestData);
-
       await surveyDataSource.submitResponse(surveyId, requestData);
 
-      console.log('✅ Response submitted successfully!');
       showToast('¡Respuesta enviada exitosamente!', 'success');
       
-      // Limpiar respuestas
       setAnswers({});
       
-      // Volver a la pantalla anterior después de un breve delay
       setTimeout(() => {
         navigation.goBack();
       }, 1500);
     } catch (error: any) {
-      console.error('❌ Error submitting response:', error);
-      console.error('❌ Error details:', error.response?.data || error.message);
       showToast(error.response?.data?.message || error.message || 'Error al enviar respuesta', 'error');
     } finally {
       setSubmitting(false);
@@ -158,10 +135,8 @@ const SurveyResponseScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const setAnswer = (questionId: string, value: string | string[]) => {
-    console.log(`✏️ Setting answer for question ${questionId}:`, value);
     setAnswers((prev) => {
       const newAnswers = { ...prev, [questionId]: value };
-      console.log('✏️ Updated answers:', newAnswers);
       return newAnswers;
     });
   };
@@ -297,13 +272,6 @@ const QuestionResponse: React.FC<QuestionResponseProps> = ({
       onChange(currentValues.filter((v) => v !== option));
     }
   };
-
-  console.log(`Question ${index + 1}:`, {
-    type: question.type,
-    hasOptions: !!question.options,
-    optionsCount: question.options?.length || 0,
-    options: question.options,
-  });
 
   return (
     <View style={styles.questionCard}>
