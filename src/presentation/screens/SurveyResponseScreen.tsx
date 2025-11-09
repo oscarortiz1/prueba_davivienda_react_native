@@ -58,7 +58,6 @@ const SurveyResponseScreen: React.FC<Props> = ({ route, navigation }) => {
         }
       }
 
-      // Normalizar tipos de pregunta y asegurar que haya opciones
       const normalizedSurvey = {
         ...data,
         questions: data.questions.map((q: any) => ({

@@ -47,9 +47,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
     try {
       await login(email, password);
-      // Navigation is handled automatically by App.tsx based on auth state
     } catch (error) {
-      // Error already handled by useAuth hook with toast
     }
   };
 

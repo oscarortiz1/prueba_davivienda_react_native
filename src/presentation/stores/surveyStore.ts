@@ -3,19 +3,16 @@ import { Survey } from '../../core/domain/entities/Survey';
 import { surveyRepository } from '../../data/repositories/SurveyRepositoryImpl';
 
 interface SurveyState {
-  // State
   surveys: Survey[];
   publishedSurveys: Survey[];
   currentSurvey: Survey | null;
   loading: boolean;
 
-  // Actions
   setLoading: (loading: boolean) => void;
   setSurveys: (surveys: Survey[]) => void;
   setPublishedSurveys: (surveys: Survey[]) => void;
   setCurrentSurvey: (survey: Survey | null) => void;
   
-  // Survey operations
   refreshMySurveys: () => Promise<void>;
   refreshPublishedSurveys: () => Promise<void>;
   createSurvey: (data: {
@@ -38,23 +35,19 @@ interface SurveyState {
   deleteSurvey: (id: string) => Promise<void>;
   publishSurvey: (id: string) => Promise<Survey>;
   
-  // Question operations
   addQuestion: (surveyId: string, question: any) => Promise<Survey>;
   updateQuestion: (surveyId: string, questionId: string, question: any) => Promise<Survey>;
   deleteQuestion: (surveyId: string, questionId: string) => Promise<Survey>;
   
-  // Utility
   reset: () => void;
 }
 
 export const useSurveyStore = create<SurveyState>((set, get) => ({
-  // Initial state
   surveys: [],
   publishedSurveys: [],
   currentSurvey: null,
   loading: false,
 
-  // State setters
   setLoading: (loading) => set({ loading }),
   
   setSurveys: (surveys) => set({ surveys }),
@@ -63,7 +56,6 @@ export const useSurveyStore = create<SurveyState>((set, get) => ({
   
   setCurrentSurvey: (survey) => set({ currentSurvey: survey }),
 
-  // Survey operations
   refreshMySurveys: async () => {
     set({ loading: true });
     try {
@@ -129,7 +121,6 @@ export const useSurveyStore = create<SurveyState>((set, get) => ({
     return survey;
   },
 
-  // Question operations
   addQuestion: async (surveyId, question) => {
     if (!surveyId) {
       throw new Error('ID de encuesta requerido para agregar pregunta');
@@ -157,7 +148,6 @@ export const useSurveyStore = create<SurveyState>((set, get) => ({
     return survey;
   },
 
-  // Utility
   reset: () =>
     set({
       surveys: [],

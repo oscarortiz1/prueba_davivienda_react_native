@@ -29,7 +29,6 @@ export const Toast: React.FC<ToastProps> = ({
 
   useEffect(() => {
     if (visible) {
-      // Show animation
       Animated.parallel([
         Animated.timing(opacity, {
           toValue: 1,
@@ -44,7 +43,6 @@ export const Toast: React.FC<ToastProps> = ({
         }),
       ]).start();
 
-      // Auto hide after duration
       const timer = setTimeout(() => {
         hideToast();
       }, duration);

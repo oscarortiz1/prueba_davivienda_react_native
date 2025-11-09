@@ -31,16 +31,13 @@ const SurveyResultsScreen: React.FC<Props> = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [responses, setResponses] = useState<ResponseDetailResponse[]>([]);
 
-  // Cargar datos inicialmente y configurar actualización automática
   useEffect(() => {
     loadData();
 
-    // Actualización automática cada 5 segundos
     const interval = setInterval(() => {
       loadDataSilently();
     }, 5000);
 
-    // Limpiar el intervalo cuando el componente se desmonte
     return () => clearInterval(interval);
   }, [surveyId]);
 
@@ -48,12 +45,10 @@ const SurveyResultsScreen: React.FC<Props> = ({ route, navigation }) => {
     try {
       setLoading(true);
 
-      // Load survey if not already loaded
       if (!currentSurvey || currentSurvey.id !== surveyId) {
         await getSurvey(surveyId);
       }
 
-      // Load responses
       const responsesData = await surveyDataSource.getSurveyResponses(surveyId);
       setResponses(responsesData);
     } catch (error: any) {
@@ -63,13 +58,11 @@ const SurveyResultsScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
-  // Actualización silenciosa (sin mostrar indicador visual)
   const loadDataSilently = async () => {
     try {
       const responsesData = await surveyDataSource.getSurveyResponses(surveyId);
       setResponses(responsesData);
     } catch (error) {
-      // Silenciar errores en actualización automática
       console.log('Error en actualización automática:', error);
     }
   };
@@ -114,7 +107,6 @@ const SurveyResultsScreen: React.FC<Props> = ({ route, navigation }) => {
   const getChartDataForQuestion = (question: any) => {
     const answers = getAnswersByQuestion(question.id);
     
-    // Para preguntas con opciones (multiple-choice, checkbox, dropdown, scale)
     if (question.options && question.options.length > 0) {
       const optionCounts: { [key: string]: number } = {};
       
@@ -146,7 +138,6 @@ const SurveyResultsScreen: React.FC<Props> = ({ route, navigation }) => {
     const questionType = question.type?.toUpperCase();
     const isTextQuestion = questionType === 'TEXT' || questionType === 'TEXTAREA';
 
-    // Para preguntas de texto, mostrar solo información básica
     if (isTextQuestion) {
 
       return (
@@ -187,11 +178,9 @@ const SurveyResultsScreen: React.FC<Props> = ({ route, navigation }) => {
             <View style={styles.textAnswersContainer}>
               <Text style={styles.textAnswersTitle}>Total de respuestas: {answers.length}</Text>
               {answers.map((answer, idx) => {
-                // Manejar arrays y strings
                 let answerText = 'Sin respuesta';
                 if (answer.value) {
                   if (Array.isArray(answer.value)) {
-                    // Si es array, unir los elementos o tomar el primero
                     answerText = answer.value.length > 0 ? answer.value.join(', ') : 'Sin respuesta';
                   } else {
                     answerText = answer.value.toString();
@@ -219,7 +208,6 @@ const SurveyResultsScreen: React.FC<Props> = ({ route, navigation }) => {
       );
     }
 
-    // Para preguntas con opciones
     const chartData = getChartDataForQuestion(question);
 
     if (!chartData || chartData.counts.every(count => count === 0)) {
@@ -268,8 +256,6 @@ const SurveyResultsScreen: React.FC<Props> = ({ route, navigation }) => {
       legendFontSize: 12,
     })).filter(item => item.count > 0);
 
-    // Decidir qué tipo de gráfica mostrar (solo una por pregunta)
-    // Priorizar gráficas circulares: usar barras solo si hay 1-2 opciones
     const chartType = chartData.labels.length <= 2 ? 'bar' : 'pie';
 
     return (

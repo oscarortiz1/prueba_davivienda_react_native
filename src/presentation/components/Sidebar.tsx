@@ -14,7 +14,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useToastStore } from '../stores/toastStore';
 
 const { width } = Dimensions.get('window');
-const SIDEBAR_WIDTH = width * 0.75; // 75% del ancho de la pantalla
+const SIDEBAR_WIDTH = width * 0.75; 
 
 interface SidebarProps {
   visible: boolean;

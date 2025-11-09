@@ -74,7 +74,6 @@ export const useAuth = () => {
         setUser(currentUser);
       }
     } catch (err: any) {
-      // Silent fail - user will need to login
     } finally {
       setLoading(false);
     }

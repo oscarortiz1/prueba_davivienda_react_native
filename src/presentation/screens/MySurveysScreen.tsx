@@ -42,7 +42,6 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [surveyToDelete, setSurveyToDelete] = useState<Survey | null>(null);
 
-  // Refresh when screen comes into focus (after returning from response screen)
   useFocusEffect(
     React.useCallback(() => {
       const refreshAll = async () => {
@@ -50,7 +49,6 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
           await refreshPublishedSurveys();
           await checkRespondedSurveys();
         } catch (error) {
-          // Silent error handling
         }
       };
       
@@ -61,7 +59,6 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
   useEffect(() => {
     loadSurveys();
 
-    // Auto-refresh every 5 seconds for real-time updates
     const interval = setInterval(() => {
       loadSurveysSilently();
     }, 5000);
@@ -74,7 +71,6 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
       await Promise.all([refreshMySurveys(), refreshPublishedSurveys()]);
       await checkRespondedSurveys();
     } catch (error: any) {
-      // Don't show toast for 401/403 - interceptor handles logout
       const status = error?.response?.status;
       if (status !== 401 && status !== 403) {
         showToast(error.message || 'Error al cargar encuestas', 'error');
@@ -89,7 +85,6 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
       await Promise.all([refreshMySurveys(), refreshPublishedSurveys()]);
       await checkRespondedSurveys();
     } catch (error) {
-      // Silent error handling - don't show toasts for background updates
     }
   };
 
@@ -123,13 +118,11 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
             responded.add(survey.id);
           }
         } catch (error: any) {
-          // Ignore errors for individual surveys
         }
       }
       
       setRespondedSurveys(responded);
     } catch (error: any) {
-      // Silent error handling
     } finally {
       setIsCheckingResponses(false);
     }
@@ -142,7 +135,6 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
       await refreshPublishedSurveys();
       await checkRespondedSurveys();
     } catch (error) {
-      // Silent error handling
     } finally {
       setRefreshing(false);
     }
@@ -155,7 +147,6 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleCopyLink = async (surveyId: string) => {
     try {
-      // Generate the correct survey response link
       const link = `http://localhost:5173/survey/${surveyId}/respond`;
       await Share.share({
         message: `Responde esta encuesta: ${link}`,
@@ -866,7 +857,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6B7280',
   },
-  // Modal styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',

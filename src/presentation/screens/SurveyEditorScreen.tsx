@@ -31,7 +31,6 @@ const QUESTION_TYPES: { value: QuestionType; label: string }[] = [
   { value: 'scale', label: '📊 Escala (1-5)' },
 ];
 
-// Tipos de preguntas que requieren opciones
 const TYPES_WITH_OPTIONS = ['multiple-choice', 'checkbox', 'dropdown'];
 
 const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
@@ -60,7 +59,6 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [questionToDelete, setQuestionToDelete] = useState<{ id: string; title: string } | null>(null);
 
-  // Convertir tipo de pregunta al formato del backend (MAYÚSCULAS)
   const mapTypeToBackend = (type: QuestionType): string => {
     const mapping: Record<QuestionType, string> = {
       'text': 'TEXT',
@@ -73,7 +71,6 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
     return mapping[type] || 'TEXT';
   };
 
-  // Convertir tipo de pregunta del backend al formato del frontend (minúsculas)
   const mapTypeFromBackend = (type: string): QuestionType => {
     const mapping: Record<string, QuestionType> = {
       'TEXT': 'text',
@@ -98,7 +95,6 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
       setLoading(true);
       const survey = await getSurvey(surveyId);
 
-      // Verificar si el usuario es el creador
       if (survey.createdBy !== user?.id) {
         showToast('No tienes permiso para editar esta encuesta', 'error');
         navigation.goBack();
@@ -109,7 +105,6 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
       setDescription(survey.description);
       setExpiresAt(survey.expiresAt ? new Date(survey.expiresAt).toISOString().split('T')[0] : '');
 
-      // Mapear los tipos de preguntas del backend al frontend
       const mappedQuestions = survey.questions.map(q => ({
         ...q,
         type: mapTypeFromBackend(q.type as string) as QuestionType
@@ -119,7 +114,6 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
       setIsPublished(survey.isPublished);
       setCurrentSurveyId(survey.id);
 
-      // Inicializar opciones para edición
       const optionsMap: { [key: string]: string[] } = {};
       survey.questions.forEach(q => {
         if (q.options) {
@@ -154,18 +148,15 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
         description: description.trim(),
       };
 
-      // Agregar fecha de expiración si existe
       if (expiresAt) {
         surveyData.expiresAt = new Date(expiresAt);
       }
 
       if (!currentSurveyId) {
-        // Create new survey
         const newSurvey = await createSurvey(surveyData);
         setCurrentSurveyId(newSurvey.id);
         showToast('Encuesta creada', 'success');
       } else {
-        // Update existing survey
         await updateSurvey(currentSurveyId, surveyData);
         showToast('Encuesta actualizada', 'success');
       }
@@ -191,7 +182,6 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
       return;
     }
 
-    // Validar que las preguntas con opciones tengan al menos 2 opciones
     const invalidQuestions = questions.filter(q => {
       if (TYPES_WITH_OPTIONS.includes(q.type)) {
         return !q.options || q.options.length < 2;
@@ -205,7 +195,6 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
       return;
     }
 
-    // Llamada directa al servicio para depuración
     try {
       setSaving(true);
       console.log('[Publicar] Llamando publishSurvey con id:', currentSurveyId);
@@ -243,7 +232,6 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
       console.log('✅ Pregunta agregada. Encuesta actualizada:', updatedSurvey);
       console.log('📋 Número de preguntas:', updatedSurvey.questions.length);
 
-      // Mapear los tipos de preguntas del backend al frontend
       const mappedQuestions = updatedSurvey.questions.map(q => ({
         ...q,
         type: mapTypeFromBackend(q.type as string) as QuestionType
@@ -265,11 +253,9 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
     if (!currentSurveyId) return;
 
     try {
-      // Obtener la pregunta actual completa
       const currentQuestion = questions.find(q => q.id === questionId);
       if (!currentQuestion) return;
 
-      // Construir el objeto completo con todos los campos requeridos
       const fullUpdate = {
         title: updates.title ?? currentQuestion.title,
         type: mapTypeToBackend(updates.type ?? currentQuestion.type),
@@ -281,7 +267,6 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
 
       const updatedSurvey = await updateQuestion(currentSurveyId, questionId, fullUpdate);
 
-      // Mapear los tipos de preguntas del backend al frontend
       const mappedQuestions = updatedSurvey.questions.map(q => ({
         ...q,
         type: mapTypeFromBackend(q.type as string) as QuestionType
@@ -311,7 +296,6 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
       console.log("🗑️ Eliminando pregunta:", questionToDelete.id);
       const updatedSurvey = await deleteQuestion(currentSurveyId, questionToDelete.id);
 
-      // Mapear los tipos de preguntas del backend al frontend
       const mappedQuestions = updatedSurvey.questions.map(q => ({
         ...q,
         type: mapTypeFromBackend(q.type as string) as QuestionType
@@ -356,7 +340,6 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
       return;
     }
 
-    // Filtrar opciones vacías
     const validOptions = options.filter(opt => opt.trim() !== '');
 
     if (validOptions.length < 2) {
@@ -369,13 +352,11 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const handleTypeChange = async (questionId: string, newType: QuestionType) => {
-    // Actualizar el estado local primero
     const updatedQuestions = questions.map(q =>
       q.id === questionId ? { ...q, type: newType } : q
     );
     setQuestions(updatedQuestions);
 
-    // Si el nuevo tipo requiere opciones y no las tiene, inicializar con opciones por defecto
     let optionsToSet: string[] | undefined;
 
     if (TYPES_WITH_OPTIONS.includes(newType)) {
@@ -388,7 +369,6 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
         });
       }
     } else if (newType === 'scale') {
-      // Para escala, usar opciones del 1 al 5
       optionsToSet = ['1', '2', '3', '4', '5'];
       setEditingOptions({
         ...editingOptions,
@@ -396,7 +376,6 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
       });
     }
 
-    // Actualizar en el backend
     await handleUpdateQuestion(questionId, { type: newType, options: optionsToSet });
   };
 
@@ -956,7 +935,6 @@ const styles = StyleSheet.create({
     color: '#065F46',
     textAlign: 'center',
   },
-  // Modal styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
