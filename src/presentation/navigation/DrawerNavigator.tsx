@@ -16,12 +16,16 @@ export const DrawerNavigator: React.FC = () => {
         drawerStyle: {
           width: '75%',
         },
+        overlayColor: 'rgba(0, 0, 0, 0.3)',
+        swipeEdgeWidth: 50,
       }}
     >
       <Drawer.Screen 
         name="MainStack" 
         component={MainNavigator}
-        options={{ title: 'Mis Encuestas' }}
+        options={{ 
+          title: 'Mis Encuestas',
+        }}
       />
     </Drawer.Navigator>
   );

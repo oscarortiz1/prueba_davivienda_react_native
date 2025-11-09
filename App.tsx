@@ -1,7 +1,7 @@
 ﻿import 'react-native-gesture-handler';
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, ActivityIndicator, LogBox } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthNavigator } from './src/presentation/navigation/AuthNavigator';
@@ -15,6 +15,26 @@ import { initializeInfrastructure } from './src/infrastructure';
 
 // Initialize infrastructure services
 initializeInfrastructure();
+
+// Suppress non-critical React Native Web warnings
+if (typeof window !== 'undefined') {
+  // Suppress aria-hidden warnings from React Navigation Drawer on web
+  const originalWarn = console.warn;
+  console.warn = (...args) => {
+    if (
+      typeof args[0] === 'string' &&
+      args[0].includes('aria-hidden')
+    ) {
+      return;
+    }
+    originalWarn.apply(console, args);
+  };
+}
+
+// Ignore specific React Native warnings
+LogBox.ignoreLogs([
+  'Non-serializable values were found in the navigation state',
+]);
 
 export default function App() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);

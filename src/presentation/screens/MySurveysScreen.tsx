@@ -134,6 +134,12 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderSurveyCard = (survey: Survey, isMine: boolean) => (
     <View key={survey.id} style={styles.card}>
+      {/* Accent bar at top */}
+      <View style={[
+        styles.cardAccent,
+        survey.isPublished ? styles.cardAccentPublished : styles.cardAccentDraft
+      ]} />
+      
       <View style={styles.cardHeader}>
         <View style={styles.badges}>
           <View
@@ -158,6 +164,28 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           )}
         </View>
+        
+        {/* Quick Actions in Top Right */}
+        {isMine && (
+          <View style={styles.quickActions}>
+            {survey.isPublished && (
+              <TouchableOpacity
+                onPress={() => handleCopyLink(survey.id)}
+                style={styles.quickActionButton}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.quickActionIcon}>🔗</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity 
+              onPress={() => handleDelete(survey)} 
+              style={[styles.quickActionButton, styles.quickActionButtonDelete]}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.quickActionIcon}>🗑️</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       {!survey.isPublished && isMine && (
@@ -172,10 +200,14 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
       </Text>
 
       <View style={styles.cardMeta}>
-        <Text style={styles.metaText}>❓ {survey.questions.length} preguntas</Text>
-        <Text style={styles.metaText}>
-          📅 {new Date(survey.updatedAt).toLocaleDateString()}
-        </Text>
+        <View style={styles.metaBadge}>
+          <Text style={styles.metaText}>❓ {survey.questions.length} preguntas</Text>
+        </View>
+        <View style={styles.metaBadge}>
+          <Text style={styles.metaText}>
+            📅 {new Date(survey.updatedAt).toLocaleDateString()}
+          </Text>
+        </View>
       </View>
 
       {survey.expiresAt && survey.isPublished && (
@@ -215,17 +247,6 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
               variant="secondary"
               style={styles.actionButton}
             />
-            {survey.isPublished && (
-              <TouchableOpacity
-                onPress={() => handleCopyLink(survey.id)}
-                style={styles.iconButton}
-              >
-                <Text style={styles.iconButtonText}>🔗</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity onPress={() => handleDelete(survey)} style={styles.iconButton}>
-              <Text style={styles.iconButtonText}>🗑️</Text>
-            </TouchableOpacity>
           </>
         ) : (
           <CustomButton
@@ -254,13 +275,47 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
       >
         {/* My Surveys Section */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Mis encuestas creadas</Text>
-            <CustomButton
-              title="+ Nueva"
+          {/* Hero Header */}
+          <View style={styles.heroHeader}>
+            <View style={styles.heroContent}>
+              <Text style={styles.heroTitle}>✨ Mis encuestas creadas</Text>
+              <Text style={styles.heroSubtitle}>
+                Gestiona y publica tus encuestas
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.createButton}
               onPress={() => navigation.navigate('SurveyEditor', { surveyId: 'new' })}
-            />
+            >
+              <View style={styles.createButtonContent}>
+                <Text style={styles.createButtonIcon}>+</Text>
+                <Text style={styles.createButtonText}>Nueva</Text>
+              </View>
+            </TouchableOpacity>
           </View>
+
+          {/* Stats Card */}
+          <View style={styles.statsCard}>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{mySurveys.length}</Text>
+              <Text style={styles.statLabel}>Total</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statNumber, styles.statNumberPublished]}>
+                {mySurveys.filter(s => s.isPublished).length}
+              </Text>
+              <Text style={styles.statLabel}>Publicadas</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statNumber, styles.statNumberDraft]}>
+                {mySurveys.filter(s => !s.isPublished).length}
+              </Text>
+              <Text style={styles.statLabel}>Borradores</Text>
+            </View>
+          </View>
+
           {loading && mySurveys.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateText}>Cargando...</Text>
@@ -286,10 +341,17 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
         {/* Published Surveys Section */}
         {otherPublishedSurveys.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Encuestas publicadas</Text>
-            <Text style={styles.sectionSubtitle}>
-              Explora y responde encuestas de otros usuarios
-            </Text>
+            <View style={styles.publishedHeader}>
+              <View style={styles.publishedHeaderIcon}>
+                <Text style={styles.publishedIconText}>🌍</Text>
+              </View>
+              <View style={styles.publishedHeaderContent}>
+                <Text style={styles.sectionTitle}>Encuestas publicadas</Text>
+                <Text style={styles.sectionSubtitle}>
+                  Explora y responde encuestas de otros usuarios
+                </Text>
+              </View>
+            </View>
             {otherPublishedSurveys.map((survey) => renderSurveyCard(survey, false))}
           </View>
         )}
@@ -309,11 +371,100 @@ const styles = StyleSheet.create({
   section: {
     padding: 16,
   },
-  sectionHeader: {
+  heroHeader: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    borderLeftWidth: 4,
+    borderLeftColor: '#DC2626',
+  },
+  heroContent: {
+    flex: 1,
+  },
+  heroTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  createButton: {
+    backgroundColor: '#DC2626',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  createButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  createButtonIcon: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  createButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  statsCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statNumber: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#DC2626',
+    marginBottom: 4,
+  },
+  statNumberPublished: {
+    color: '#059669',
+  },
+  statNumberDraft: {
+    color: '#F59E0B',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: '#E5E7EB',
   },
   sectionTitle: {
     fontSize: 20,
@@ -326,21 +477,94 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginBottom: 16,
   },
-  card: {
+  publishedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
     elevation: 2,
+    gap: 12,
+  },
+  publishedHeaderIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#F0FDF4',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  publishedIconText: {
+    fontSize: 24,
+  },
+  publishedHeaderContent: {
+    flex: 1,
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    overflow: 'hidden',
+  },
+  cardAccent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 4,
+  },
+  cardAccentPublished: {
+    backgroundColor: '#059669',
+  },
+  cardAccentDraft: {
+    backgroundColor: '#F59E0B',
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 8,
+    marginTop: 4,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  quickActionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1.5,
+    borderColor: '#BAE6FD',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  quickActionButtonDelete: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+    shadowColor: '#EF4444',
+  },
+  quickActionIcon: {
+    fontSize: 18,
   },
   badges: {
     flexDirection: 'row',
@@ -386,24 +610,36 @@ const styles = StyleSheet.create({
     color: '#92400E',
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#111827',
-    marginBottom: 4,
+    marginBottom: 6,
+    letterSpacing: -0.5,
   },
   cardDescription: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#6B7280',
-    marginBottom: 12,
+    marginBottom: 14,
+    lineHeight: 22,
   },
   cardMeta: {
     flexDirection: 'row',
-    gap: 16,
-    marginBottom: 12,
+    gap: 12,
+    marginBottom: 14,
+    flexWrap: 'wrap',
+  },
+  metaBadge: {
+    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   metaText: {
-    fontSize: 12,
-    color: '#6B7280',
+    fontSize: 13,
+    color: '#374151',
+    fontWeight: '500',
   },
   expirationBadge: {
     borderRadius: 8,
@@ -446,28 +682,30 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 32,
+    borderRadius: 16,
+    padding: 40,
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#E5E7EB',
     borderStyle: 'dashed',
+    marginTop: 8,
   },
   emptyStateIcon: {
-    fontSize: 48,
-    marginBottom: 12,
+    fontSize: 64,
+    marginBottom: 16,
   },
   emptyStateTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: 'bold',
     color: '#111827',
     marginBottom: 8,
   },
   emptyStateDescription: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#6B7280',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
+    lineHeight: 22,
   },
   emptyStateButton: {
     marginTop: 8,
