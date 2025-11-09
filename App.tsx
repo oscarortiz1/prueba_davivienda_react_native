@@ -50,10 +50,10 @@ export default function App() {
 const styles = StyleSheet.create({
   outerContainer: {
     flex: 1,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#F5F5F5',
   },
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
   },
 });

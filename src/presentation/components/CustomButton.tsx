@@ -36,6 +36,6 @@ export const CustomButton: React.FC<CustomButtonProps> = ({
 
 const styles = StyleSheet.create({
   disabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
 });
