@@ -10,7 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { DrawerActions } from '@react-navigation/native';
+import { DrawerActions, useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../stores/authStore';
 import { useSurveyStore } from '../stores/surveyStore';
 import { useToastStore } from '../stores/toastStore';
@@ -19,6 +19,7 @@ import { CustomButton } from '../components/CustomButton';
 import { Survey } from '../../core/domain/entities/Survey';
 import { Navbar } from '../components/Navbar';
 import { MainStackParamList } from '../navigation/types';
+import { surveyDataSource } from '../../data/datasources/survey.datasource';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'MySurveys'>;
 
@@ -35,6 +36,15 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
   
   const [refreshing, setRefreshing] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [respondedSurveys, setRespondedSurveys] = useState<Set<string>>(new Set());
+
+  // Refresh when screen comes into focus (after returning from response screen)
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('🔄 MySurveys screen focused - refreshing...');
+      checkRespondedSurveys();
+    }, [user?.email, publishedSurveys])
+  );
 
   useEffect(() => {
     loadSurveys();
@@ -43,6 +53,7 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
     const interval = setInterval(() => {
       refreshMySurveys().catch(() => {});
       refreshPublishedSurveys().catch(() => {});
+      checkRespondedSurveys();
     }, 3000);
     
     return () => clearInterval(interval);
@@ -51,6 +62,7 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
   const loadSurveys = async () => {
     try {
       await Promise.all([refreshMySurveys(), refreshPublishedSurveys()]);
+      await checkRespondedSurveys();
     } catch (error: any) {
       // Don't show toast for 401/403 - interceptor handles logout
       const status = error?.response?.status;
@@ -60,6 +72,32 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
     } finally {
       setInitialLoading(false);
     }
+  };
+
+  const checkRespondedSurveys = async () => {
+    if (!user?.email) return;
+    
+    const responded = new Set<string>();
+    
+    // Check each published survey to see if user has responded
+    for (const survey of publishedSurveys) {
+      try {
+        const responses = await surveyDataSource.getSurveyResponses(survey.id);
+        const hasResponded = responses.some(
+          (response) => 
+            response.respondentId?.toLowerCase() === user.email?.toLowerCase()
+        );
+        
+        if (hasResponded) {
+          responded.add(survey.id);
+        }
+      } catch (error) {
+        // Ignore errors for individual surveys (might not have permission)
+        console.log(`Could not check responses for survey ${survey.id}`);
+      }
+    }
+    
+    setRespondedSurveys(responded);
   };
 
   const onRefresh = async () => {
@@ -264,12 +302,23 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
             />
           </>
         ) : (
-          <CustomButton
-            title={isExpired(survey.expiresAt) ? 'Encuesta expirada' : 'Responder'}
-            onPress={() => navigation.navigate('SurveyResponse', { surveyId: survey.id })}
-            disabled={isExpired(survey.expiresAt)}
-            style={{ flex: 1 }}
-          />
+          <>
+            {respondedSurveys.has(survey.id) ? (
+              <View style={styles.respondedBadgeContainer}>
+                <View style={styles.respondedBadge}>
+                  <Text style={styles.respondedBadgeIcon}>✅</Text>
+                  <Text style={styles.respondedBadgeText}>Ya respondiste</Text>
+                </View>
+              </View>
+            ) : (
+              <CustomButton
+                title={isExpired(survey.expiresAt) ? 'Encuesta expirada' : 'Responder'}
+                onPress={() => navigation.navigate('SurveyResponse', { surveyId: survey.id })}
+                disabled={isExpired(survey.expiresAt)}
+                style={{ flex: 1 }}
+              />
+            )}
+          </>
         )}
       </View>
     </View>
@@ -683,6 +732,30 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
+  },
+  respondedBadgeContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  respondedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF5',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+    gap: 6,
+  },
+  respondedBadgeIcon: {
+    fontSize: 18,
+  },
+  respondedBadgeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#166534',
   },
   iconButton: {
     width: 40,
