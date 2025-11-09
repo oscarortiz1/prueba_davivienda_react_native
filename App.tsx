@@ -4,16 +4,26 @@ import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { LoginScreen } from './src/presentation/screens/LoginScreen';
 import { RegisterScreen } from './src/presentation/screens/RegisterScreen';
 import { HomeScreen } from './src/presentation/screens/HomeScreen';
+import MySurveysScreen from './src/presentation/screens/MySurveysScreen';
+import SurveyEditorScreen from './src/presentation/screens/SurveyEditorScreen';
+import SurveyResultsScreen from './src/presentation/screens/SurveyResultsScreen';
 import { useAuthStore } from './src/presentation/stores/authStore';
 import { useAuth } from './src/presentation/hooks/useAuth';
 import { Toast } from './src/presentation/components/Toast';
 import { useToastStore } from './src/presentation/stores/toastStore';
 import { COLORS } from './src/shared/constants/colors';
 
-type Screen = 'login' | 'register' | 'home';
+type Screen = 
+  | 'login' 
+  | 'register' 
+  | 'home' 
+  | 'mySurveys' 
+  | 'surveyEditor' 
+  | 'surveyResults';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
+  const [screenParams, setScreenParams] = useState<any>({});
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const { user } = useAuthStore();
   const { checkAuthStatus } = useAuth();
@@ -31,6 +41,28 @@ export default function App() {
     initAuth();
   }, []);
 
+  // Auto-navigate when user logs in/out
+  useEffect(() => {
+    if (user) {
+      setCurrentScreen('mySurveys');
+    } else {
+      setCurrentScreen('login');
+      setScreenParams({});
+    }
+  }, [user]);
+
+  // Simple navigation helper
+  const navigation = {
+    navigate: (screen: Screen, params?: any) => {
+      setCurrentScreen(screen);
+      setScreenParams(params || {});
+    },
+    goBack: () => {
+      setCurrentScreen('mySurveys');
+      setScreenParams({});
+    },
+  };
+
   if (isCheckingAuth) {
     return (
       <View style={[styles.outerContainer, styles.loadingContainer]}>
@@ -41,7 +73,27 @@ export default function App() {
 
   const renderScreen = () => {
     if (user) {
-      return <HomeScreen onLogout={() => setCurrentScreen('login')} />;
+      switch (currentScreen) {
+        case 'mySurveys':
+          return <MySurveysScreen navigation={navigation} />;
+        case 'surveyEditor':
+          return (
+            <SurveyEditorScreen 
+              route={{ params: screenParams }} 
+              navigation={navigation} 
+            />
+          );
+        case 'surveyResults':
+          return (
+            <SurveyResultsScreen 
+              route={{ params: screenParams }} 
+              navigation={navigation} 
+            />
+          );
+        case 'home':
+        default:
+          return <HomeScreen onLogout={() => setCurrentScreen('login')} />;
+      }
     }
 
     switch (currentScreen) {
@@ -49,14 +101,14 @@ export default function App() {
         return (
           <LoginScreen
             onNavigateToRegister={() => setCurrentScreen('register')}
-            onLoginSuccess={() => setCurrentScreen('home')}
+            onLoginSuccess={() => setCurrentScreen('mySurveys')}
           />
         );
       case 'register':
         return (
           <RegisterScreen
             onNavigateToLogin={() => setCurrentScreen('login')}
-            onRegisterSuccess={() => setCurrentScreen('home')}
+            onRegisterSuccess={() => setCurrentScreen('mySurveys')}
           />
         );
       default:
