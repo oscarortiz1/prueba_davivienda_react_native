@@ -61,10 +61,10 @@ export interface QuestionResponse {
 
 // Response DTOs
 export interface SubmitResponseRequest {
-  respondentId?: string;
+  respondentEmail: string;
   answers: {
     questionId: string;
-    value: string | string[];
+    value: string[];
   }[];
 }
 

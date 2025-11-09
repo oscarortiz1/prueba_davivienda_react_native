@@ -58,7 +58,20 @@ const SurveyResponseScreen: React.FC<Props> = ({ route, navigation }) => {
         }
       }
 
-      setSurvey(data);
+      // Normalizar tipos de pregunta y asegurar que haya opciones
+      const normalizedSurvey = {
+        ...data,
+        questions: data.questions.map((q: any) => ({
+          ...q,
+          type: q.type.toLowerCase().replace(/_/g, '-'),
+          options: q.options || [],
+        })),
+      };
+
+      console.log('Survey loaded:', normalizedSurvey);
+      console.log('Questions:', normalizedSurvey.questions);
+      
+      setSurvey(normalizedSurvey);
     } catch (error: any) {
       showToast(error.message || 'Error al cargar la encuesta', 'error');
       navigation.goBack();
@@ -68,6 +81,12 @@ const SurveyResponseScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const handleSubmit = async () => {
+    console.log('📤 Submitting survey response...');
+    console.log('📤 Survey ID:', surveyId);
+    console.log('📤 User:', user);
+    console.log('📤 Respondent Email:', respondentEmail);
+    console.log('📤 Current Answers:', answers);
+
     // Validar email si el usuario no está autenticado
     if (!user && !respondentEmail.trim()) {
       showToast('Ingresa tu correo electrónico', 'error');
@@ -87,27 +106,64 @@ const SurveyResponseScreen: React.FC<Props> = ({ route, navigation }) => {
     try {
       setSubmitting(true);
 
-      const formattedAnswers = survey.questions.map((q: Question) => ({
-        questionId: q.id,
-        value: answers[q.id] || (q.type === 'checkbox' ? [] : ''),
-      }));
+      const formattedAnswers = survey.questions.map((q: Question) => {
+        const answer = answers[q.id];
+        let value: string[];
 
-      await surveyDataSource.submitResponse(surveyId, {
-        respondentId: user?.email || respondentEmail,
-        answers: formattedAnswers,
+        if (!answer) {
+          // Si no hay respuesta, enviar array vacío
+          value = [];
+        } else if (Array.isArray(answer)) {
+          // Si ya es un array, usarlo directamente
+          value = answer;
+        } else {
+          // Si es un string, convertirlo a array
+          value = [answer];
+        }
+
+        return {
+          questionId: q.id,
+          value: value,
+        };
       });
 
+      console.log('📤 Formatted Answers:', formattedAnswers);
+
+      const requestData = {
+        respondentEmail: user?.email || respondentEmail,
+        answers: formattedAnswers,
+      };
+
+      console.log('📤 Request Data:', requestData);
+
+      await surveyDataSource.submitResponse(surveyId, requestData);
+
+      console.log('✅ Response submitted successfully!');
       showToast('¡Respuesta enviada exitosamente!', 'success');
-      navigation.goBack();
+      
+      // Limpiar respuestas
+      setAnswers({});
+      
+      // Volver a la pantalla anterior después de un breve delay
+      setTimeout(() => {
+        navigation.goBack();
+      }, 1500);
     } catch (error: any) {
-      showToast(error.message || 'Error al enviar respuesta', 'error');
+      console.error('❌ Error submitting response:', error);
+      console.error('❌ Error details:', error.response?.data || error.message);
+      showToast(error.response?.data?.message || error.message || 'Error al enviar respuesta', 'error');
     } finally {
       setSubmitting(false);
     }
   };
 
   const setAnswer = (questionId: string, value: string | string[]) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: value }));
+    console.log(`✏️ Setting answer for question ${questionId}:`, value);
+    setAnswers((prev) => {
+      const newAnswers = { ...prev, [questionId]: value };
+      console.log('✏️ Updated answers:', newAnswers);
+      return newAnswers;
+    });
   };
 
   if (loading) {
@@ -156,6 +212,16 @@ const SurveyResponseScreen: React.FC<Props> = ({ route, navigation }) => {
           {survey.description && (
             <Text style={styles.surveyDescription}>{survey.description}</Text>
           )}
+          
+          {/* Required fields note */}
+          {survey.questions.some((q: Question) => q.required) && (
+            <View style={styles.requiredNote}>
+              <Text style={styles.requiredNoteText}>
+                * Campos obligatorios
+              </Text>
+            </View>
+          )}
+          
           {survey.expiresAt && (
             <View style={styles.expirationBadge}>
               <Text style={styles.expirationText}>
@@ -193,6 +259,12 @@ const SurveyResponseScreen: React.FC<Props> = ({ route, navigation }) => {
 
         {/* Submit Button */}
         <View style={styles.submitContainer}>
+          {submitting && (
+            <View style={styles.submittingIndicator}>
+              <ActivityIndicator size="small" color="#DC2626" />
+              <Text style={styles.submittingText}>Enviando respuesta...</Text>
+            </View>
+          )}
           <CustomButton
             title={submitting ? 'Enviando...' : 'Enviar respuestas'}
             onPress={handleSubmit}
@@ -226,6 +298,13 @@ const QuestionResponse: React.FC<QuestionResponseProps> = ({
     }
   };
 
+  console.log(`Question ${index + 1}:`, {
+    type: question.type,
+    hasOptions: !!question.options,
+    optionsCount: question.options?.length || 0,
+    options: question.options,
+  });
+
   return (
     <View style={styles.questionCard}>
       <Text style={styles.questionTitle}>
@@ -256,114 +335,152 @@ const QuestionResponse: React.FC<QuestionResponseProps> = ({
 
       {question.type === 'multiple-choice' && (
         <View style={styles.optionsContainer}>
-          {question.options?.map((option, i) => (
-            <TouchableOpacity
-              key={i}
-              style={[
-                styles.optionButton,
-                value === option && styles.optionButtonSelected,
-              ]}
-              onPress={() => onChange(option)}
-            >
-              <View style={styles.radio}>
-                {value === option && <View style={styles.radioSelected} />}
-              </View>
-              <Text
-                style={[
-                  styles.optionText,
-                  value === option && styles.optionTextSelected,
-                ]}
-              >
-                {option}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      {question.type === 'checkbox' && (
-        <View style={styles.optionsContainer}>
-          {question.options?.map((option, i) => (
-            <TouchableOpacity
-              key={i}
-              style={[
-                styles.optionButton,
-                ((value as string[]) || []).includes(option) &&
-                  styles.optionButtonSelected,
-              ]}
-              onPress={() =>
-                handleCheckboxChange(
-                  option,
-                  !((value as string[]) || []).includes(option)
-                )
-              }
-            >
-              <View style={styles.checkbox}>
-                {((value as string[]) || []).includes(option) && (
-                  <Text style={styles.checkmark}>✓</Text>
-                )}
-              </View>
-              <Text
-                style={[
-                  styles.optionText,
-                  ((value as string[]) || []).includes(option) &&
-                    styles.optionTextSelected,
-                ]}
-              >
-                {option}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      {question.type === 'dropdown' && (
-        <View style={styles.dropdownContainer}>
-          <TouchableOpacity
-            style={styles.dropdown}
-            onPress={() => {
-              // Simple implementation - could be improved with a modal picker
-              const options = question.options || [];
-              const currentIndex = options.indexOf(value as string);
-              const nextIndex = (currentIndex + 1) % (options.length + 1);
-              onChange(nextIndex === options.length ? '' : options[nextIndex]);
-            }}
-          >
-            <Text style={value ? styles.dropdownText : styles.dropdownPlaceholder}>
-              {(value as string) || 'Selecciona una opción'}
+          {(!question.options || question.options.length === 0) ? (
+            <Text style={styles.noOptionsText}>
+              Esta pregunta no tiene opciones configuradas
             </Text>
-            <Text style={styles.dropdownIcon}>▼</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {question.type === 'scale' && (
-        <View style={styles.scaleContainer}>
-          <View style={styles.scaleLabels}>
-            <Text style={styles.scaleLabel}>Menor</Text>
-            <Text style={styles.scaleLabel}>Mayor</Text>
-          </View>
-          <View style={styles.scaleButtons}>
-            {question.options?.map((option, i) => (
+          ) : (
+            question.options.map((option, i) => (
               <TouchableOpacity
                 key={i}
                 style={[
-                  styles.scaleButton,
-                  value === option && styles.scaleButtonSelected,
+                  styles.optionButton,
+                  value === option && styles.optionButtonSelected,
                 ]}
                 onPress={() => onChange(option)}
               >
+                <View style={styles.radio}>
+                  {value === option && <View style={styles.radioSelected} />}
+                </View>
                 <Text
                   style={[
-                    styles.scaleButtonText,
-                    value === option && styles.scaleButtonTextSelected,
+                    styles.optionText,
+                    value === option && styles.optionTextSelected,
                   ]}
                 >
                   {option}
                 </Text>
               </TouchableOpacity>
-            ))}
-          </View>
+            ))
+          )}
+        </View>
+      )}
+
+      {question.type === 'checkbox' && (
+        <View style={styles.optionsContainer}>
+          {(!question.options || question.options.length === 0) ? (
+            <Text style={styles.noOptionsText}>
+              Esta pregunta no tiene opciones configuradas
+            </Text>
+          ) : (
+            question.options.map((option, i) => (
+              <TouchableOpacity
+                key={i}
+                style={[
+                  styles.optionButton,
+                  ((value as string[]) || []).includes(option) &&
+                    styles.optionButtonSelected,
+                ]}
+                onPress={() =>
+                  handleCheckboxChange(
+                    option,
+                    !((value as string[]) || []).includes(option)
+                  )
+                }
+              >
+                <View style={styles.checkbox}>
+                  {((value as string[]) || []).includes(option) && (
+                    <Text style={styles.checkmark}>✓</Text>
+                  )}
+                </View>
+                <Text
+                  style={[
+                    styles.optionText,
+                    ((value as string[]) || []).includes(option) &&
+                      styles.optionTextSelected,
+                  ]}
+                >
+                  {option}
+                </Text>
+              </TouchableOpacity>
+            ))
+          )}
+        </View>
+      )}
+
+      {question.type === 'dropdown' && (
+        <View style={styles.dropdownContainer}>
+          {(!question.options || question.options.length === 0) ? (
+            <Text style={styles.noOptionsText}>
+              Esta pregunta no tiene opciones configuradas
+            </Text>
+          ) : (
+            <View style={styles.dropdownOptionsWrapper}>
+              <Text style={styles.dropdownLabel}>Selecciona una opción:</Text>
+              <View style={styles.optionsContainer}>
+                {question.options.map((option, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    style={[
+                      styles.optionButton,
+                      value === option && styles.optionButtonSelected,
+                    ]}
+                    onPress={() => onChange(option)}
+                  >
+                    <View style={styles.radio}>
+                      {value === option && <View style={styles.radioSelected} />}
+                    </View>
+                    <Text
+                      style={[
+                        styles.optionText,
+                        value === option && styles.optionTextSelected,
+                      ]}
+                    >
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
+      )}
+
+      {question.type === 'scale' && (
+        <View style={styles.scaleContainer}>
+          {(!question.options || question.options.length === 0) ? (
+            <Text style={styles.noOptionsText}>
+              Esta pregunta no tiene opciones configuradas
+            </Text>
+          ) : (
+            <>
+              <View style={styles.scaleLabels}>
+                <Text style={styles.scaleLabel}>Menor</Text>
+                <Text style={styles.scaleLabel}>Mayor</Text>
+              </View>
+              <View style={styles.scaleButtons}>
+                {question.options.map((option, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    style={[
+                      styles.scaleButton,
+                      value === option && styles.scaleButtonSelected,
+                    ]}
+                    onPress={() => onChange(option)}
+                  >
+                    <Text
+                      style={[
+                        styles.scaleButtonText,
+                        value === option && styles.scaleButtonTextSelected,
+                      ]}
+                    >
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )}
         </View>
       )}
     </View>
@@ -414,6 +531,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     lineHeight: 20,
+  },
+  requiredNote: {
+    marginTop: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  requiredNoteText: {
+    fontSize: 12,
+    color: '#DC2626',
+    fontWeight: '600',
   },
   expirationBadge: {
     marginTop: 12,
@@ -548,6 +678,15 @@ const styles = StyleSheet.create({
   dropdownContainer: {
     marginTop: 4,
   },
+  dropdownOptionsWrapper: {
+    gap: 8,
+  },
+  dropdownLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
   dropdown: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -609,9 +748,28 @@ const styles = StyleSheet.create({
   scaleButtonTextSelected: {
     color: '#fff',
   },
+  noOptionsText: {
+    fontSize: 14,
+    color: '#DC2626',
+    fontStyle: 'italic',
+    padding: 12,
+    textAlign: 'center',
+  },
   submitContainer: {
     padding: 16,
     paddingBottom: 32,
+  },
+  submittingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  submittingText: {
+    fontSize: 14,
+    color: '#DC2626',
+    fontWeight: '600',
   },
 });
 
