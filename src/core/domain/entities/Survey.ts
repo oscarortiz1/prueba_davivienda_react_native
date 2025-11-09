@@ -1,4 +1,4 @@
-export type QuestionType = 'text' | 'multiple-choice' | 'checkbox' | 'dropdown' | 'scale';
+export type QuestionType = 'text' | 'textarea' | 'multiple-choice' | 'checkbox' | 'dropdown' | 'scale';
 
 export interface Question {
   id: string;

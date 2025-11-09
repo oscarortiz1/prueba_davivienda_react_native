@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Share,
   Alert,
+  Modal,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { DrawerActions, useFocusEffect } from '@react-navigation/native';
@@ -38,6 +39,8 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
   const [initialLoading, setInitialLoading] = useState(true);
   const [respondedSurveys, setRespondedSurveys] = useState<Set<string>>(new Set());
   const [isCheckingResponses, setIsCheckingResponses] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [surveyToDelete, setSurveyToDelete] = useState<Survey | null>(null);
 
   // Refresh when screen comes into focus (after returning from response screen)
   useFocusEffect(
@@ -57,6 +60,13 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
 
   useEffect(() => {
     loadSurveys();
+
+    // Auto-refresh every 5 seconds for real-time updates
+    const interval = setInterval(() => {
+      loadSurveysSilently();
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const loadSurveys = async () => {
@@ -71,6 +81,15 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
       }
     } finally {
       setInitialLoading(false);
+    }
+  };
+
+  const loadSurveysSilently = async () => {
+    try {
+      await Promise.all([refreshMySurveys(), refreshPublishedSurveys()]);
+      await checkRespondedSurveys();
+    } catch (error) {
+      // Silent error handling - don't show toasts for background updates
     }
   };
 
@@ -150,29 +169,23 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  const handleDelete = async (survey: Survey) => {
-    const confirmed = typeof window !== 'undefined' 
-      ? window.confirm(`¿Estás seguro de eliminar "${survey.title}"? Esta acción no se puede deshacer.`)
-      : await new Promise<boolean>((resolve) => {
-          Alert.alert(
-            'Eliminar encuesta',
-            `¿Estás seguro de eliminar "${survey.title}"? Esta acción no se puede deshacer.`,
-            [
-              { text: 'Cancelar', style: 'cancel', onPress: () => resolve(false) },
-              { text: 'Eliminar', style: 'destructive', onPress: () => resolve(true) },
-            ]
-          );
-        });
-    
-    if (!confirmed) {
-      return;
-    }
-    
+  const handleDelete = (survey: Survey) => {
+    setSurveyToDelete(survey);
+    setDeleteModalVisible(true);
+  };
+
+  const confirmDeleteSurvey = async () => {
+    if (!surveyToDelete) return;
+
     try {
-      await deleteSurvey(survey.id);
+      await deleteSurvey(surveyToDelete.id);
       showToast('Encuesta eliminada', 'success');
+      setDeleteModalVisible(false);
+      setSurveyToDelete(null);
     } catch (error: any) {
       showToast(error.message || 'Error al eliminar', 'error');
+      setDeleteModalVisible(false);
+      setSurveyToDelete(null);
     }
   };
 
@@ -436,6 +449,41 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         )}
       </ScrollView>
+
+      {/* Modal de confirmación de eliminación */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={deleteModalVisible}
+        onRequestClose={() => setDeleteModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Eliminar encuesta</Text>
+            <Text style={styles.modalMessage}>
+              ¿Estás seguro de eliminar "{surveyToDelete?.title}"?{'\n\n'}
+              Esta acción no se puede deshacer.
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => {
+                  setDeleteModalVisible(false);
+                  setSurveyToDelete(null);
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.deleteButton]}
+                onPress={confirmDeleteSurvey}
+              >
+                <Text style={styles.deleteButtonText}>Eliminar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -817,6 +865,73 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 16,
     color: '#6B7280',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: '#6B7280',
+    lineHeight: 24,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  deleteButton: {
+    backgroundColor: '#DC2626',
+  },
+  deleteButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 

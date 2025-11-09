@@ -6,9 +6,10 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Image,
+  Platform,
+  Modal,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSurveyStore } from '../stores/surveyStore';
@@ -22,12 +23,16 @@ import { MainStackParamList } from '../navigation/types';
 type Props = NativeStackScreenProps<MainStackParamList, 'SurveyEditor'>;
 
 const QUESTION_TYPES: { value: QuestionType; label: string }[] = [
-  { value: 'text', label: '📝 Texto' },
+  { value: 'text', label: '📝 Texto corto' },
+  { value: 'textarea', label: '📄 Texto largo' },
   { value: 'multiple-choice', label: '⭕ Opción múltiple' },
   { value: 'checkbox', label: '☑️ Casillas' },
   { value: 'dropdown', label: '📋 Desplegable' },
-  { value: 'scale', label: '📊 Escala' },
+  { value: 'scale', label: '📊 Escala (1-5)' },
 ];
+
+// Tipos de preguntas que requieren opciones
+const TYPES_WITH_OPTIONS = ['multiple-choice', 'checkbox', 'dropdown'];
 
 const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
   const { surveyId } = route.params || {};
@@ -47,9 +52,13 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [expiresAt, setExpiresAt] = useState('');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentSurveyId, setCurrentSurveyId] = useState<string | null>(isNew ? null : surveyId || null);
   const [isPublished, setIsPublished] = useState(false);
+  const [editingOptions, setEditingOptions] = useState<{ [key: string]: string[] }>({});
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [questionToDelete, setQuestionToDelete] = useState<{ id: string; title: string } | null>(null);
 
   useEffect(() => {
     if (!isNew && surveyId) {
@@ -59,23 +68,33 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const loadSurvey = async () => {
     if (!surveyId) return;
-    
+
     try {
       setLoading(true);
       const survey = await getSurvey(surveyId);
-      
+
       // Verificar si el usuario es el creador
       if (survey.createdBy !== user?.id) {
         showToast('No tienes permiso para editar esta encuesta', 'error');
         navigation.goBack();
         return;
       }
-      
+
       setTitle(survey.title);
       setDescription(survey.description);
+      setExpiresAt(survey.expiresAt ? new Date(survey.expiresAt).toISOString().split('T')[0] : '');
       setQuestions(survey.questions.sort((a, b) => a.order - b.order));
       setIsPublished(survey.isPublished);
       setCurrentSurveyId(survey.id);
+
+      // Inicializar opciones para edición
+      const optionsMap: { [key: string]: string[] } = {};
+      survey.questions.forEach(q => {
+        if (q.options) {
+          optionsMap[q.id] = q.options;
+        }
+      });
+      setEditingOptions(optionsMap);
     } catch (error: any) {
       showToast(error.message || 'Error al cargar encuesta', 'error');
       navigation.goBack();
@@ -97,21 +116,25 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
 
     try {
       setSaving(true);
-      
+
+      const surveyData: any = {
+        title: title.trim(),
+        description: description.trim(),
+      };
+
+      // Agregar fecha de expiración si existe
+      if (expiresAt) {
+        surveyData.expiresAt = new Date(expiresAt);
+      }
+
       if (!currentSurveyId) {
         // Create new survey
-        const newSurvey = await createSurvey({
-          title: title.trim(),
-          description: description.trim(),
-        });
+        const newSurvey = await createSurvey(surveyData);
         setCurrentSurveyId(newSurvey.id);
         showToast('Encuesta creada', 'success');
       } else {
         // Update existing survey
-        await updateSurvey(currentSurveyId, {
-          title: title.trim(),
-          description: description.trim(),
-        });
+        await updateSurvey(currentSurveyId, surveyData);
         showToast('Encuesta actualizada', 'success');
       }
     } catch (error: any) {
@@ -129,6 +152,19 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
 
     if (questions.length === 0) {
       showToast('Agrega al menos una pregunta', 'error');
+      return;
+    }
+
+    // Validar que las preguntas con opciones tengan al menos 2 opciones
+    const invalidQuestions = questions.filter(q => {
+      if (TYPES_WITH_OPTIONS.includes(q.type)) {
+        return !q.options || q.options.length < 2;
+      }
+      return false;
+    });
+
+    if (invalidQuestions.length > 0) {
+      showToast('Las preguntas de opción múltiple, casillas y desplegables deben tener al menos 2 opciones', 'error');
       return;
     }
 
@@ -157,26 +193,48 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   };
 
+  // Convertir tipo de pregunta al formato del backend (MAYÚSCULAS)
+  const mapTypeToBackend = (type: QuestionType): string => {
+    const mapping: Record<QuestionType, string> = {
+      'text': 'TEXT',
+      'textarea': 'TEXT',
+      'multiple-choice': 'MULTIPLE_CHOICE',
+      'checkbox': 'CHECKBOX',
+      'dropdown': 'DROPDOWN',
+      'scale': 'SCALE',
+    };
+    return mapping[type] || 'TEXT';
+  };
+
   const handleAddQuestion = async () => {
     if (!currentSurveyId) {
       showToast('Guarda la encuesta primero', 'info');
       return;
     }
 
-    const newQuestion = {
+    const newQuestion: any = {
       title: 'Nueva pregunta',
-      type: 'text' as QuestionType,
+      type: 'TEXT' as QuestionType,
       required: false,
       order: questions.length,
     };
 
     try {
       setSaving(true);
+      console.log('📝 Agregando pregunta a la encuesta:', currentSurveyId);
+      console.log('📝 Datos de la pregunta:', JSON.stringify(newQuestion, null, 2));
       const updatedSurvey = await addQuestion(currentSurveyId, newQuestion);
-      setQuestions(updatedSurvey.questions.sort((a, b) => a.order - b.order));
+      console.log('✅ Pregunta agregada. Encuesta actualizada:', updatedSurvey);
+      console.log('📋 Número de preguntas:', updatedSurvey.questions.length);
+
+      const sortedQuestions = updatedSurvey.questions.sort((a, b) => a.order - b.order);
+      setQuestions(sortedQuestions);
       showToast('Pregunta agregada', 'success');
     } catch (error: any) {
-      showToast(error.message || 'Error al agregar pregunta', 'error');
+      console.error('❌ Error al agregar pregunta:', error);
+      console.error('❌ Response data:', error.response?.data);
+      console.error('❌ Status:', error.response?.status);
+      showToast(error.response?.data?.message || error.message || 'Error al agregar pregunta', 'error');
     } finally {
       setSaving(false);
     }
@@ -186,33 +244,108 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
     if (!currentSurveyId) return;
 
     try {
-      const updatedSurvey = await updateQuestion(currentSurveyId, questionId, updates);
+      // Mapear el tipo al formato del backend (MAYÚSCULAS) si está presente
+      const mappedUpdates: any = { ...updates };
+      if (updates.type) {
+        mappedUpdates.type = mapTypeToBackend(updates.type);
+      }
+
+      const updatedSurvey = await updateQuestion(currentSurveyId, questionId, mappedUpdates);
       setQuestions(updatedSurvey.questions.sort((a, b) => a.order - b.order));
-      showToast('Pregunta actualizada', 'success');
     } catch (error: any) {
-      showToast(error.message || 'Error al actualizar pregunta', 'error');
+      console.error("❌ Error al actualizar pregunta:", error);
+      console.error("❌ Response data:", error.response?.data);
+      showToast(error.response?.data?.message || error.message || "Error al actualizar pregunta", "error");
     }
   };
 
-  const handleDeleteQuestion = async (questionId: string) => {
+  const handleDeleteQuestion = (questionId: string) => {
     if (!currentSurveyId) return;
 
-    Alert.alert('Eliminar pregunta', '¿Estás seguro?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            const updatedSurvey = await deleteQuestion(currentSurveyId, questionId);
-            setQuestions(updatedSurvey.questions.sort((a, b) => a.order - b.order));
-            showToast('Pregunta eliminada', 'success');
-          } catch (error: any) {
-            showToast(error.message || 'Error al eliminar pregunta', 'error');
-          }
-        },
-      },
-    ]);
+    const question = questions.find(q => q.id === questionId);
+    const questionTitle = question?.title || 'esta pregunta';
+
+    setQuestionToDelete({ id: questionId, title: questionTitle });
+    setDeleteModalVisible(true);
+  };
+
+  const confirmDeleteQuestion = async () => {
+    if (!currentSurveyId || !questionToDelete) return;
+
+    try {
+      console.log("🗑️ Eliminando pregunta:", questionToDelete.id);
+      const updatedSurvey = await deleteQuestion(currentSurveyId, questionToDelete.id);
+      setQuestions(updatedSurvey.questions.sort((a, b) => a.order - b.order));
+      showToast('Pregunta eliminada', 'success');
+      setDeleteModalVisible(false);
+      setQuestionToDelete(null);
+    } catch (error: any) {
+      console.error("❌ Error al eliminar pregunta:", error);
+      console.error("❌ Response data:", error.response?.data);
+      showToast(error.response?.data?.message || error.message || "Error al eliminar pregunta", "error");
+      setDeleteModalVisible(false);
+      setQuestionToDelete(null);
+    }
+  };
+
+  const handleAddOption = (questionId: string) => {
+    const currentOptions = editingOptions[questionId] || [];
+    const newOptions = [...currentOptions, `Opción ${currentOptions.length + 1}`];
+    setEditingOptions({ ...editingOptions, [questionId]: newOptions });
+  };
+
+  const handleUpdateOption = (questionId: string, index: number, value: string) => {
+    const currentOptions = editingOptions[questionId] || [];
+    const newOptions = [...currentOptions];
+    newOptions[index] = value;
+    setEditingOptions({ ...editingOptions, [questionId]: newOptions });
+  };
+
+  const handleDeleteOption = (questionId: string, index: number) => {
+    const currentOptions = editingOptions[questionId] || [];
+    const newOptions = currentOptions.filter((_, i) => i !== index);
+    setEditingOptions({ ...editingOptions, [questionId]: newOptions });
+  };
+
+  const handleSaveOptions = async (questionId: string) => {
+    const options = editingOptions[questionId] || [];
+
+    if (options.length < 2) {
+      showToast('Debe haber al menos 2 opciones', 'error');
+      return;
+    }
+
+    // Filtrar opciones vacías
+    const validOptions = options.filter(opt => opt.trim() !== '');
+
+    if (validOptions.length < 2) {
+      showToast('Debe haber al menos 2 opciones válidas', 'error');
+      return;
+    }
+
+    await handleUpdateQuestion(questionId, { options: validOptions });
+    showToast('Opciones guardadas', 'success');
+  };
+
+  const handleTypeChange = async (questionId: string, newType: QuestionType) => {
+    // Si el nuevo tipo requiere opciones y no las tiene, inicializar con opciones por defecto
+    if (TYPES_WITH_OPTIONS.includes(newType)) {
+      const question = questions.find(q => q.id === questionId);
+      if (!question?.options || question.options.length === 0) {
+        setEditingOptions({
+          ...editingOptions,
+          [questionId]: ['Opción 1', 'Opción 2']
+        });
+      }
+    } else if (newType === 'scale') {
+      // Para escala, usar opciones del 1 al 5
+      setEditingOptions({
+        ...editingOptions,
+        [questionId]: ['1', '2', '3', '4', '5']
+      });
+    }
+
+    await handleUpdateQuestion(questionId, { type: newType });
   };
 
   if (loading) {
@@ -238,20 +371,22 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
         onBackPress={() => navigation.goBack()}
         showBackButton={true}
       />
-      
+
       <ScrollView style={styles.content}>
+        {/* Información básica */}
         <View style={styles.section}>
+          <Text style={styles.sectionHeaderText}>📋 Información básica</Text>
+
           <Text style={styles.label}>Título *</Text>
           <TextInput
             style={styles.input}
             value={title}
             onChangeText={setTitle}
-            placeholder="Título de la encuesta"
+            placeholder="Ej: Encuesta de satisfacción del cliente"
             editable={!isPublished}
+            placeholderTextColor="#9CA3AF"
           />
-        </View>
 
-        <View style={styles.section}>
           <Text style={styles.label}>Descripción *</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
@@ -261,14 +396,37 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
             multiline
             numberOfLines={3}
             editable={!isPublished}
+            placeholderTextColor="#9CA3AF"
           />
+
+          <Text style={styles.label}>Fecha de expiración (opcional)</Text>
+          <TextInput
+            style={styles.input}
+            value={expiresAt}
+            onChangeText={setExpiresAt}
+            placeholder="YYYY-MM-DD"
+            editable={!isPublished}
+            placeholderTextColor="#9CA3AF"
+          />
+          <Text style={styles.helperText}>
+            Formato: AAAA-MM-DD (Ej: 2025-12-31)
+          </Text>
         </View>
 
+        {/* Preguntas */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Preguntas ({questions.length})</Text>
+            <Text style={styles.sectionTitle}>
+              ❓ Preguntas ({questions.length})
+            </Text>
             {!isPublished && currentSurveyId && (
-              <CustomButton title="+ Agregar" onPress={handleAddQuestion} />
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={handleAddQuestion}
+                disabled={saving}
+              >
+                <Text style={styles.addButtonText}>+ Agregar pregunta</Text>
+              </TouchableOpacity>
             )}
           </View>
 
@@ -276,29 +434,45 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
             <View style={styles.emptyQuestions}>
               <Text style={styles.emptyQuestionsIcon}>❓</Text>
               <Text style={styles.emptyQuestionsText}>
-                No hay preguntas aún. Guarda la encuesta y agrega preguntas.
+                No hay preguntas aún. {!currentSurveyId ? 'Guarda la encuesta primero y luego ' : ''}Agrega preguntas para comenzar.
               </Text>
             </View>
           ) : (
             questions.map((question, index) => (
               <View key={question.id} style={styles.questionCard}>
                 <View style={styles.questionHeader}>
-                  <Text style={styles.questionNumber}>Pregunta {index + 1}</Text>
+                  <View style={styles.questionBadge}>
+                    <Text style={styles.questionNumber}>{index + 1}</Text>
+                  </View>
                   {!isPublished && (
-                    <TouchableOpacity onPress={() => handleDeleteQuestion(question.id)}>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteQuestion(question.id)}
+                      style={styles.deleteIconButton}
+                    >
                       <Text style={styles.deleteButton}>🗑️</Text>
                     </TouchableOpacity>
                   )}
                 </View>
 
+                <Text style={styles.label}>Título de la pregunta *</Text>
                 <TextInput
                   style={styles.input}
                   value={question.title}
-                  onChangeText={(text) =>
-                    handleUpdateQuestion(question.id, { title: text })
-                  }
-                  placeholder="Título de la pregunta"
+                  onChangeText={(text) => {
+                    const updatedQuestions = questions.map(q =>
+                      q.id === question.id ? { ...q, title: text } : q
+                    );
+                    setQuestions(updatedQuestions);
+                  }}
+                  onBlur={() => {
+                    const currentQuestion = questions.find(q => q.id === question.id);
+                    if (currentQuestion) {
+                      handleUpdateQuestion(question.id, { title: currentQuestion.title });
+                    }
+                  }}
+                  placeholder="Escribe tu pregunta aquí"
                   editable={!isPublished}
+                  placeholderTextColor="#9CA3AF"
                 />
 
                 {/* Mostrar imagen si existe */}
@@ -322,8 +496,7 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
                         question.type === type.value && styles.typeButtonActive,
                       ]}
                       onPress={() =>
-                        !isPublished &&
-                        handleUpdateQuestion(question.id, { type: type.value })
+                        !isPublished && handleTypeChange(question.id, type.value)
                       }
                       disabled={isPublished}
                     >
@@ -339,6 +512,54 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
                   ))}
                 </View>
 
+                {/* Editor de opciones para preguntas de opción múltiple, checkbox y dropdown */}
+                {(TYPES_WITH_OPTIONS.includes(question.type) || question.type === 'scale') && (
+                  <View style={styles.optionsContainer}>
+                    <View style={styles.optionsHeader}>
+                      <Text style={styles.optionsLabel}>
+                        {question.type === 'scale' ? 'Valores de la escala' : 'Opciones de respuesta'}
+                      </Text>
+                      {!isPublished && question.type !== 'scale' && (
+                        <TouchableOpacity
+                          style={styles.addOptionButton}
+                          onPress={() => handleAddOption(question.id)}
+                        >
+                          <Text style={styles.addOptionText}>+ Agregar</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+
+                    {(editingOptions[question.id] || question.options || []).map((option, optIndex) => (
+                      <View key={optIndex} style={styles.optionRow}>
+                        <TextInput
+                          style={styles.optionInput}
+                          value={editingOptions[question.id]?.[optIndex] ?? option}
+                          onChangeText={(text) => handleUpdateOption(question.id, optIndex, text)}
+                          placeholder={`Opción ${optIndex + 1}`}
+                          editable={!isPublished && question.type !== 'scale'}
+                          placeholderTextColor="#9CA3AF"
+                        />
+                        {!isPublished && question.type !== 'scale' && (
+                          <TouchableOpacity
+                            onPress={() => handleDeleteOption(question.id, optIndex)}
+                            style={styles.deleteOptionButton}
+                          >
+                            <Text style={styles.deleteOptionText}>✕</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    ))}
+
+                    {!isPublished && editingOptions[question.id] && question.type !== 'scale' && (
+                      <CustomButton
+                        title="Guardar opciones"
+                        onPress={() => handleSaveOptions(question.id)}
+                        style={styles.saveOptionsButton}
+                      />
+                    )}
+                  </View>
+                )}
+
                 <TouchableOpacity
                   style={styles.requiredToggle}
                   onPress={() =>
@@ -348,7 +569,7 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
                   disabled={isPublished}
                 >
                   <Text style={styles.requiredText}>
-                    {question.required ? '☑️' : '☐'} Requerida
+                    {question.required ? '☑️' : '☐'} Pregunta obligatoria
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -357,6 +578,7 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
       </ScrollView>
 
+      {/* Footer con botones de acción */}
       {!isPublished && (
         <View style={styles.footer}>
           <CustomButton
@@ -376,6 +598,47 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
           )}
         </View>
       )}
+
+      {isPublished && (
+        <View style={styles.publishedBanner}>
+          <Text style={styles.publishedText}>✅ Esta encuesta ya está publicada</Text>
+        </View>
+      )}
+
+      {/* Modal de confirmación de eliminación */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={deleteModalVisible}
+        onRequestClose={() => setDeleteModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Eliminar pregunta</Text>
+            <Text style={styles.modalMessage}>
+              ¿Estás seguro de eliminar "{questionToDelete?.title}"?{'\n\n'}
+              Esta acción no se puede deshacer.
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => {
+                  setDeleteModalVisible(false);
+                  setQuestionToDelete(null);
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.deleteButton]}
+                onPress={confirmDeleteQuestion}
+              >
+                <Text style={styles.deleteButtonText}>Eliminar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -404,6 +667,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     marginBottom: 8,
   },
+  sectionHeaderText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 16,
+  },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -411,15 +680,33 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#111827',
+  },
+  addButton: {
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
     color: '#374151',
     marginBottom: 8,
+    marginTop: 12,
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   input: {
     backgroundColor: '#F9FAFB',
@@ -435,8 +722,13 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   emptyQuestions: {
-    padding: 32,
+    padding: 40,
     alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
   },
   emptyQuestionsIcon: {
     fontSize: 48,
@@ -446,12 +738,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     textAlign: 'center',
+    lineHeight: 20,
   },
   questionCard: {
     backgroundColor: '#F9FAFB',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   questionHeader: {
     flexDirection: 'row',
@@ -459,13 +754,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
+  questionBadge: {
+    backgroundColor: '#DC2626',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   questionNumber: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#DC2626',
+    color: '#fff',
+  },
+  deleteIconButton: {
+    padding: 4,
   },
   deleteButton: {
-    fontSize: 20,
+    fontSize: 24,
   },
   typeSelector: {
     flexDirection: 'row',
@@ -487,15 +793,78 @@ const styles = StyleSheet.create({
     borderColor: '#DC2626',
   },
   typeButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#374151',
   },
   typeButtonTextActive: {
     color: '#fff',
     fontWeight: '600',
   },
+  optionsContainer: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  optionsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  optionsLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  addOptionButton: {
+    backgroundColor: '#059669',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  addOptionText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  optionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  optionInput: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 6,
+    padding: 10,
+    fontSize: 14,
+    color: '#111827',
+  },
+  deleteOptionButton: {
+    width: 32,
+    height: 32,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteOptionText: {
+    color: '#DC2626',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  saveOptionsButton: {
+    marginTop: 8,
+  },
   requiredToggle: {
-    paddingVertical: 8,
+    paddingVertical: 12,
+    marginTop: 8,
   },
   requiredText: {
     fontSize: 14,
@@ -522,6 +891,85 @@ const styles = StyleSheet.create({
     gap: 12,
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
+  },
+  publishedBanner: {
+    backgroundColor: '#D1FAE5',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#86EFAC',
+  },
+  publishedText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#065F46',
+    textAlign: 'center',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: '#6B7280',
+    lineHeight: 24,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  deleteButton: {
+    backgroundColor: '#DC2626',
+  },
+  deleteButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 
