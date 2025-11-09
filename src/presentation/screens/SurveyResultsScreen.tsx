@@ -6,6 +6,7 @@ import {
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSurveyStore } from '../stores/surveyStore';
@@ -137,6 +138,17 @@ const SurveyResultsScreen: React.FC<Props> = ({ route, navigation }) => {
                   <Text style={styles.questionNumber}>Pregunta {index + 1}</Text>
                   <Text style={styles.questionTitle}>{question.title}</Text>
                   <Text style={styles.questionType}>Tipo: {question.type}</Text>
+                  
+                  {/* Mostrar imagen si existe */}
+                  {question.imageUrl && (
+                    <View style={styles.questionImageContainer}>
+                      <Image
+                        source={{ uri: question.imageUrl }}
+                        style={styles.questionImage}
+                        resizeMode="contain"
+                      />
+                    </View>
+                  )}
                   
                   <View style={styles.answersContainer}>
                     <Text style={styles.answersTitle}>
@@ -391,6 +403,19 @@ const styles = StyleSheet.create({
   answerCount: {
     fontSize: 14,
     color: '#374151',
+  },
+  questionImageContainer: {
+    marginTop: 12,
+    marginBottom: 12,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  questionImage: {
+    width: '100%',
+    height: 200,
   },
 });
 

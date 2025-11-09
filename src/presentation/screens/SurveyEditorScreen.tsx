@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSurveyStore } from '../stores/surveyStore';
@@ -290,6 +291,17 @@ const SurveyEditorScreen: React.FC<Props> = ({ route, navigation }) => {
                   editable={!isPublished}
                 />
 
+                {/* Mostrar imagen si existe */}
+                {question.imageUrl && (
+                  <View style={styles.questionImageContainer}>
+                    <Image
+                      source={{ uri: question.imageUrl }}
+                      style={styles.questionImage}
+                      resizeMode="contain"
+                    />
+                  </View>
+                )}
+
                 <Text style={styles.label}>Tipo de pregunta</Text>
                 <View style={styles.typeSelector}>
                   {QUESTION_TYPES.map((type) => (
@@ -479,6 +491,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#374151',
     fontWeight: '500',
+  },
+  questionImageContainer: {
+    marginTop: 12,
+    marginBottom: 12,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  questionImage: {
+    width: '100%',
+    height: 200,
   },
   footer: {
     backgroundColor: '#fff',
