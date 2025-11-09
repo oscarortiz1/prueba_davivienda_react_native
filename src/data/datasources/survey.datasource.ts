@@ -41,7 +41,10 @@ export const surveyDataSource = {
   },
 
   deleteSurvey: async (id: string): Promise<void> => {
+    console.log('🗑️ [DataSource] Deleting survey:', id);
+    console.log('🗑️ [DataSource] Endpoint:', API_ENDPOINTS.SURVEYS.DELETE(id));
     await httpService.delete(API_ENDPOINTS.SURVEYS.DELETE(id));
+    console.log('✅ [DataSource] Delete request completed');
   },
 
   publishSurvey: async (id: string): Promise<SurveyResponse> => {

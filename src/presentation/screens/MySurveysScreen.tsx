@@ -34,14 +34,16 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
   const { logout } = useAuth();
   
   const [refreshing, setRefreshing] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
     loadSurveys();
     
-    // Refresh published surveys every 5 seconds for real-time updates
+    // Refresh all surveys every 3 seconds for real-time updates
     const interval = setInterval(() => {
+      refreshMySurveys().catch(() => {});
       refreshPublishedSurveys().catch(() => {});
-    }, 5000);
+    }, 3000);
     
     return () => clearInterval(interval);
   }, []);
@@ -55,6 +57,8 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
       if (status !== 401 && status !== 403) {
         showToast(error.message || 'Error al cargar encuestas', 'error');
       }
+    } finally {
+      setInitialLoading(false);
     }
   };
 
@@ -85,26 +89,37 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  const handleDelete = (survey: Survey) => {
-    Alert.alert(
-      'Eliminar encuesta',
-      `¿Estás seguro de eliminar "${survey.title}"? Esta acción no se puede deshacer.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteSurvey(survey.id);
-              showToast('Encuesta eliminada', 'success');
-            } catch (error: any) {
-              showToast(error.message || 'Error al eliminar', 'error');
-            }
-          },
-        },
-      ]
-    );
+  const handleDelete = async (survey: Survey) => {
+    console.log('🗑️ [Delete] Survey ID:', survey.id);
+    
+    // Use window.confirm for web compatibility
+    const confirmed = typeof window !== 'undefined' 
+      ? window.confirm(`¿Estás seguro de eliminar "${survey.title}"? Esta acción no se puede deshacer.`)
+      : await new Promise<boolean>((resolve) => {
+          Alert.alert(
+            'Eliminar encuesta',
+            `¿Estás seguro de eliminar "${survey.title}"? Esta acción no se puede deshacer.`,
+            [
+              { text: 'Cancelar', style: 'cancel', onPress: () => resolve(false) },
+              { text: 'Eliminar', style: 'destructive', onPress: () => resolve(true) },
+            ]
+          );
+        });
+    
+    if (!confirmed) {
+      console.log('❌ [Delete] Cancelled by user');
+      return;
+    }
+    
+    try {
+      console.log('🗑️ [Delete] Calling deleteSurvey...');
+      await deleteSurvey(survey.id);
+      console.log('✅ [Delete] Survey deleted successfully');
+      showToast('Encuesta eliminada', 'success');
+    } catch (error: any) {
+      console.error('❌ [Delete] Error:', error);
+      showToast(error.message || 'Error al eliminar', 'error');
+    }
   };
 
   const handleLogout = async () => {
@@ -316,7 +331,7 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           </View>
 
-          {loading && mySurveys.length === 0 ? (
+          {initialLoading ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateText}>Cargando...</Text>
             </View>
