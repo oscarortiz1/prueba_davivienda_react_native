@@ -7,11 +7,17 @@ import { HomeScreen } from './src/presentation/screens/HomeScreen';
 import MySurveysScreen from './src/presentation/screens/MySurveysScreen';
 import SurveyEditorScreen from './src/presentation/screens/SurveyEditorScreen';
 import SurveyResultsScreen from './src/presentation/screens/SurveyResultsScreen';
+import { Navbar } from './src/presentation/components/Navbar';
+import { Sidebar } from './src/presentation/components/Sidebar';
 import { useAuthStore } from './src/presentation/stores/authStore';
 import { useAuth } from './src/presentation/hooks/useAuth';
 import { Toast } from './src/presentation/components/Toast';
 import { useToastStore } from './src/presentation/stores/toastStore';
 import { COLORS } from './src/shared/constants/colors';
+import { initializeInfrastructure } from './src/infrastructure';
+
+// Initialize infrastructure services
+initializeInfrastructure();
 
 type Screen = 
   | 'login' 
@@ -25,6 +31,7 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
   const [screenParams, setScreenParams] = useState<any>({});
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [sidebarVisible, setSidebarVisible] = useState(false);
   const { user } = useAuthStore();
   const { checkAuthStatus } = useAuth();
   const { message, type, visible, hideToast } = useToastStore();
@@ -53,14 +60,33 @@ export default function App() {
 
   // Simple navigation helper
   const navigation = {
-    navigate: (screen: Screen, params?: any) => {
-      setCurrentScreen(screen);
+    navigate: (screen: string, params?: any) => {
+      setCurrentScreen(screen as Screen);
       setScreenParams(params || {});
     },
     goBack: () => {
       setCurrentScreen('mySurveys');
       setScreenParams({});
     },
+  };
+
+  // Get screen title for navbar
+  const getScreenTitle = () => {
+    switch (currentScreen) {
+      case 'mySurveys':
+        return 'Mis Encuestas';
+      case 'surveyEditor':
+        return screenParams?.surveyId === 'new' ? 'Nueva Encuesta' : 'Editar Encuesta';
+      case 'surveyResults':
+        return 'Resultados';
+      default:
+        return 'Davivienda';
+    }
+  };
+
+  // Check if current screen should show back button
+  const shouldShowBackButton = () => {
+    return currentScreen === 'surveyEditor' || currentScreen === 'surveyResults';
   };
 
   if (isCheckingAuth) {
@@ -119,7 +145,31 @@ export default function App() {
   return (
     <View style={styles.outerContainer}>
       <View style={styles.container}>
-        {renderScreen()}
+        {/* Navbar - Only show when user is logged in */}
+        {user && (
+          <Navbar
+            title={getScreenTitle()}
+            onMenuPress={() => setSidebarVisible(true)}
+            showBackButton={shouldShowBackButton()}
+            onBackPress={navigation.goBack}
+          />
+        )}
+
+        {/* Main Content */}
+        <View style={styles.content}>
+          {renderScreen()}
+        </View>
+
+        {/* Sidebar - Only show when user is logged in */}
+        {user && (
+          <Sidebar
+            visible={sidebarVisible}
+            onClose={() => setSidebarVisible(false)}
+            currentScreen={currentScreen}
+            onNavigate={navigation.navigate}
+          />
+        )}
+
         <StatusBar style="auto" />
         
         {/* Global Toast Notifications */}
@@ -142,6 +192,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  content: {
+    flex: 1,
   },
   loadingContainer: {
     justifyContent: 'center',

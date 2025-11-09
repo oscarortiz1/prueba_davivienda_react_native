@@ -48,7 +48,13 @@ const MySurveysScreen: React.FC<MySurveysScreenProps> = ({ navigation }) => {
     try {
       await Promise.all([refreshMySurveys(), refreshPublishedSurveys()]);
     } catch (error: any) {
-      showToast(error.message || 'Error al cargar encuestas', 'error');
+      // Si es 403, el usuario no tiene permisos o el token expiró
+      if (error.response?.status === 403) {
+        showToast('Sesión expirada. Por favor inicia sesión nuevamente.', 'error');
+        // El interceptor ya manejó el logout en caso de 401/403
+      } else {
+        showToast(error.message || 'Error al cargar encuestas', 'error');
+      }
     }
   };
 
@@ -235,29 +241,19 @@ const MySurveysScreen: React.FC<MySurveysScreenProps> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Mis Encuestas</Text>
-          <Text style={styles.headerSubtitle}>Hola, {user?.name}</Text>
-        </View>
-        <View style={styles.headerButtons}>
-          <CustomButton
-            title="+ Nueva"
-            onPress={() => navigation.navigate('surveyEditor', { surveyId: 'new' })}
-          />
-          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-            <Text style={styles.logoutIcon}>🚪</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
       <ScrollView
         style={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {/* My Surveys Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Mis encuestas creadas</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Mis encuestas creadas</Text>
+            <CustomButton
+              title="+ Nueva"
+              onPress={() => navigation.navigate('surveyEditor', { surveyId: 'new' })}
+            />
+          </View>
           {loading && mySurveys.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateText}>Cargando...</Text>
@@ -300,47 +296,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
-  header: {
-    backgroundColor: '#fff',
-    padding: 16,
-    paddingTop: 48,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  headerButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  logoutButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#FEE2E2',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoutIcon: {
-    fontSize: 20,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 4,
-  },
   content: {
     flex: 1,
   },
   section: {
     padding: 16,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 20,

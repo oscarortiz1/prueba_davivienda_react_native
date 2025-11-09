@@ -9,6 +9,7 @@ import { storageService } from './storage.service';
 
 class HttpClient {
   private client: AxiosInstance;
+  private authStore: any = null;
 
   constructor() {
     this.client = axios.create({
@@ -20,6 +21,13 @@ class HttpClient {
     });
 
     this.setupInterceptors();
+  }
+
+  /**
+   * Set auth store for clearing user state on auth errors
+   */
+  setAuthStore(store: any) {
+    this.authStore = store;
   }
 
   /**
@@ -50,9 +58,15 @@ class HttpClient {
           // Handle specific HTTP status codes
           switch (error.response.status) {
             case 401:
-              // Unauthorized - Clear token and redirect to login
+            case 403:
+              // Unauthorized/Forbidden - Clear token and user state
               await storageService.remove(STORAGE_KEYS.AUTH_TOKEN);
               await storageService.remove(STORAGE_KEYS.USER_DATA);
+              
+              // Clear user from store if available
+              if (this.authStore) {
+                this.authStore.getState().logout();
+              }
               break;
           }
         }

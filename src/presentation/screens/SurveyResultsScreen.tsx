@@ -74,14 +74,6 @@ const SurveyResultsScreen: React.FC<SurveyResultsScreenProps> = ({ route, naviga
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backButton}>← Atrás</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Resultados</Text>
-        <View style={{ width: 60 }} />
-      </View>
-
       <ScrollView style={styles.content}>
         <View style={styles.summaryCard}>
           <Text style={styles.surveyTitle}>{currentSurvey.title}</Text>
@@ -206,26 +198,6 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 16,
     color: '#DC2626',
-  },
-  header: {
-    backgroundColor: '#fff',
-    padding: 16,
-    paddingTop: 48,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  backButton: {
-    fontSize: 16,
-    color: '#DC2626',
-    fontWeight: '600',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827',
   },
   content: {
     flex: 1,
