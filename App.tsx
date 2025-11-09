@@ -1,19 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, Platform } from 'react-native';
+import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { LoginScreen } from './src/presentation/screens/LoginScreen';
 import { RegisterScreen } from './src/presentation/screens/RegisterScreen';
 import { HomeScreen } from './src/presentation/screens/HomeScreen';
 import { useAuthStore } from './src/presentation/stores/authStore';
+import { useAuth } from './src/presentation/hooks/useAuth';
 import { Toast } from './src/presentation/components/Toast';
 import { useToastStore } from './src/presentation/stores/toastStore';
+import { COLORS } from './src/shared/constants/colors';
 
 type Screen = 'login' | 'register' | 'home';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const { user } = useAuthStore();
+  const { checkAuthStatus } = useAuth();
   const { message, type, visible, hideToast } = useToastStore();
+
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        await checkAuthStatus();
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+
+    initAuth();
+  }, []);
+
+  if (isCheckingAuth) {
+    return (
+      <View style={[styles.outerContainer, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
 
   const renderScreen = () => {
     if (user) {
@@ -66,5 +90,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
