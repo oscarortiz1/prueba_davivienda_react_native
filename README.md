@@ -292,16 +292,18 @@ La aplicación utiliza JWT (JSON Web Tokens) para la autenticación:
 
 ## 🧪 Testing
 
+Se añadieron pruebas unitarias sencillas con Jest + ts-jest para asegurar el correcto funcionamiento de las utilidades y del almacenamiento global de toasts.
+
 ```bash
-# Ejecutar tests
+# Ejecutar los tests unitarios
 npm test
-
-# Ejecutar tests con coverage
-npm run test:coverage
-
-# Ejecutar tests en modo watch
-npm run test:watch
 ```
+
+### Cobertura actual
+- `__tests__/validations.test.ts`: verifica las funciones `validateEmail`, `validatePassword` y `validateName`.
+- `__tests__/toastStore.test.ts`: comprueba que `useToastStore` muestre/oculte mensajes correctamente y que los helpers (`success`, `error`, etc.) cambien el estado.
+
+Puedes extender la cobertura creando nuevos archivos `*.test.ts` dentro de la carpeta `__tests__/` o actualizando `jest.config.js` si prefieres organizar las suites por características.
 
 ## 🐛 Debugging
 
