@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   RefreshControl,
@@ -12,15 +11,16 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { DrawerActions, useFocusEffect } from '@react-navigation/native';
-import { useAuthStore } from '../stores/authStore';
-import { useSurveyStore } from '../stores/surveyStore';
-import { useToastStore } from '../stores/toastStore';
-import { useAuth } from '../hooks/useAuth';
-import { CustomButton } from '../components/CustomButton';
-import { Survey } from '../../core/domain/entities/Survey';
-import { Navbar } from '../components/Navbar';
-import { MainStackParamList } from '../navigation/types';
-import { surveyDataSource } from '../../data/datasources/survey.datasource';
+import { useAuthStore } from '../../stores/authStore';
+import { useSurveyStore } from '../../stores/surveyStore';
+import { useToastStore } from '../../stores/toastStore';
+import { useAuth } from '../../hooks/useAuth';
+import { CustomButton } from '../../components/CustomButton';
+import { Survey } from '../../../core/domain/entities/Survey';
+import { Navbar } from '../../components/Navbar';
+import { MainStackParamList } from '../../navigation/types';
+import { surveyDataSource } from '../../../data/datasources/survey.datasource';
+import { styles } from './MySurveysScreen.styles';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'MySurveys'>;
 
@@ -34,7 +34,7 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
   const deleteSurvey = useSurveyStore((state) => state.deleteSurvey);
   const showToast = useToastStore((state) => state.showToast);
   const { logout } = useAuth();
-  
+
   const [refreshing, setRefreshing] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [respondedSurveys, setRespondedSurveys] = useState<Set<string>>(new Set());
@@ -51,7 +51,7 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
         } catch (error) {
         }
       };
-      
+
       refreshAll();
     }, [user?.email])
   );
@@ -92,35 +92,35 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
     if (!user?.email) {
       return;
     }
-    
+
     if (isCheckingResponses) {
       return;
     }
-    
+
     setIsCheckingResponses(true);
-    
+
     try {
       const currentPublishedSurveys = await surveyDataSource.getPublishedSurveys();
       const responded = new Set<string>();
-      
+
       for (const survey of currentPublishedSurveys) {
         try {
           const responses = await surveyDataSource.getSurveyResponses(survey.id);
-          
+
           const userEmailLower = user.email?.toLowerCase().trim();
-          
+
           const hasResponded = responses.some((response) => {
             const respondentIdLower = response.respondentId?.toLowerCase().trim();
             return respondentIdLower === userEmailLower;
           });
-          
+
           if (hasResponded) {
             responded.add(survey.id);
           }
         } catch (error: any) {
         }
       }
-      
+
       setRespondedSurveys(responded);
     } catch (error: any) {
     } finally {
@@ -212,7 +212,7 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
         styles.cardAccent,
         survey.isPublished ? styles.cardAccentPublished : styles.cardAccentDraft
       ]} />
-      
+
       <View style={styles.cardHeader}>
         <View style={styles.badges}>
           <View
@@ -230,14 +230,14 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
               {survey.isPublished ? '● Publicada' : '○ Borrador'}
             </Text>
           </View>
-          
+
           {survey.isPublished && survey.expiresAt && isExpired(survey.expiresAt) && (
             <View style={[styles.badge, styles.badgeExpired]}>
               <Text style={styles.badgeTextExpired}>⏰ Expirada</Text>
             </View>
           )}
         </View>
-        
+
         {/* Quick Actions in Top Right */}
         {isMine && (
           <View style={styles.quickActions}>
@@ -250,8 +250,8 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
                 <Text style={styles.quickActionIcon}>🔗</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity 
-              onPress={() => handleDelete(survey)} 
+            <TouchableOpacity
+              onPress={() => handleDelete(survey)}
               style={[styles.quickActionButton, styles.quickActionButtonDelete]}
               activeOpacity={0.7}
             >
@@ -352,7 +352,7 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
         onMenuPress={() => navigation.dispatch(DrawerActions.openDrawer())}
         showBackButton={false}
       />
-      
+
       <ScrollView
         style={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
@@ -478,451 +478,5 @@ const MySurveysScreen: React.FC<Props> = ({ navigation }) => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  content: {
-    flex: 1,
-  },
-  section: {
-    padding: 16,
-  },
-  heroHeader: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-    borderLeftWidth: 4,
-    borderLeftColor: '#DC2626',
-  },
-  heroContent: {
-    flex: 1,
-  },
-  heroTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  heroSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  createButton: {
-    backgroundColor: '#DC2626',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  createButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  createButtonIcon: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  createButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  statsCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statNumber: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#DC2626',
-    marginBottom: 4,
-  },
-  statNumberPublished: {
-    color: '#059669',
-  },
-  statNumberDraft: {
-    color: '#F59E0B',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: '#E5E7EB',
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  sectionSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 16,
-  },
-  publishedHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-    gap: 12,
-  },
-  publishedHeaderIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#F0FDF4',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  publishedIconText: {
-    fontSize: 24,
-  },
-  publishedHeaderContent: {
-    flex: 1,
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    overflow: 'hidden',
-  },
-  cardAccent: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 4,
-  },
-  cardAccentPublished: {
-    backgroundColor: '#059669',
-  },
-  cardAccentDraft: {
-    backgroundColor: '#F59E0B',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-    marginTop: 4,
-  },
-  quickActions: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  quickActionButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#F0F9FF',
-    borderWidth: 1.5,
-    borderColor: '#BAE6FD',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  quickActionButtonDelete: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FECACA',
-    shadowColor: '#EF4444',
-  },
-  quickActionIcon: {
-    fontSize: 18,
-  },
-  badges: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  badgePublished: {
-    backgroundColor: '#D1FAE5',
-  },
-  badgeDraft: {
-    backgroundColor: '#F3F4F6',
-  },
-  badgeExpired: {
-    backgroundColor: '#FEE2E2',
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  badgeTextPublished: {
-    color: '#065F46',
-  },
-  badgeTextDraft: {
-    color: '#374151',
-  },
-  badgeTextExpired: {
-    color: '#991B1B',
-  },
-  warningBadge: {
-    backgroundColor: '#FEF3C7',
-    borderRadius: 8,
-    padding: 8,
-    marginBottom: 12,
-  },
-  warningText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#92400E',
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 6,
-    letterSpacing: -0.5,
-  },
-  cardDescription: {
-    fontSize: 15,
-    color: '#6B7280',
-    marginBottom: 14,
-    lineHeight: 22,
-  },
-  cardMeta: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 14,
-    flexWrap: 'wrap',
-  },
-  metaBadge: {
-    backgroundColor: '#F9FAFB',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  metaText: {
-    fontSize: 13,
-    color: '#374151',
-    fontWeight: '500',
-  },
-  expirationBadge: {
-    borderRadius: 8,
-    padding: 8,
-    marginBottom: 12,
-  },
-  expirationActive: {
-    backgroundColor: '#DBEAFE',
-  },
-  expirationExpired: {
-    backgroundColor: '#FEE2E2',
-  },
-  expirationText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  expirationTextActive: {
-    color: '#1E40AF',
-  },
-  expirationTextExpired: {
-    color: '#991B1B',
-  },
-  cardActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  actionButton: {
-    flex: 1,
-  },
-  respondedBadgeContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  respondedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ECFDF5',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#86EFAC',
-    gap: 6,
-  },
-  respondedBadgeIcon: {
-    fontSize: 18,
-  },
-  respondedBadgeText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#166534',
-  },
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  iconButtonText: {
-    fontSize: 18,
-  },
-  emptyState: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 40,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    borderStyle: 'dashed',
-    marginTop: 8,
-  },
-  emptyStateIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyStateTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  emptyStateDescription: {
-    fontSize: 15,
-    color: '#6B7280',
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 22,
-  },
-  emptyStateButton: {
-    marginTop: 8,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    color: '#6B7280',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
-    width: '100%',
-    maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  modalMessage: {
-    fontSize: 16,
-    color: '#6B7280',
-    lineHeight: 24,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  deleteButton: {
-    backgroundColor: '#DC2626',
-  },
-  deleteButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-});
 
 export default MySurveysScreen;

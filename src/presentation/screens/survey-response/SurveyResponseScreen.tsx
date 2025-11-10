@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TextInput,
   TouchableOpacity,
@@ -10,14 +9,15 @@ import {
   Image,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useSurveyStore } from '../stores/surveyStore';
-import { useAuthStore } from '../stores/authStore';
-import { useToastStore } from '../stores/toastStore';
-import { CustomButton } from '../components/CustomButton';
-import { Navbar } from '../components/Navbar';
-import { Question } from '../../core/domain/entities/Survey';
-import { MainStackParamList } from '../navigation/types';
-import { surveyDataSource } from '../../data/datasources/survey.datasource';
+import { useSurveyStore } from '../../stores/surveyStore';
+import { useAuthStore } from '../../stores/authStore';
+import { useToastStore } from '../../stores/toastStore';
+import { CustomButton } from '../../components/CustomButton';
+import { Navbar } from '../../components/Navbar';
+import { Question } from '../../../core/domain/entities/Survey';
+import { MainStackParamList } from '../../navigation/types';
+import { surveyDataSource } from '../../../data/datasources/survey.datasource';
+import { styles } from './SurveyResponseScreen.styles';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'SurveyResponse'>;
 
@@ -41,7 +41,7 @@ const SurveyResponseScreen: React.FC<Props> = ({ route, navigation }) => {
     try {
       setLoading(true);
       const data = await getPublicSurvey(surveyId);
-      
+
       if (!data.isPublished) {
         showToast('Esta encuesta no está publicada', 'error');
         navigation.goBack();
@@ -66,7 +66,7 @@ const SurveyResponseScreen: React.FC<Props> = ({ route, navigation }) => {
           options: q.options || [],
         })),
       };
-      
+
       setSurvey(normalizedSurvey);
     } catch (error: any) {
       showToast(error.message || 'Error al cargar la encuesta', 'error');
@@ -120,9 +120,9 @@ const SurveyResponseScreen: React.FC<Props> = ({ route, navigation }) => {
       await surveyDataSource.submitResponse(surveyId, requestData);
 
       showToast('¡Respuesta enviada exitosamente!', 'success');
-      
+
       setAnswers({});
-      
+
       setTimeout(() => {
         navigation.goBack();
       }, 1500);
@@ -186,7 +186,7 @@ const SurveyResponseScreen: React.FC<Props> = ({ route, navigation }) => {
           {survey.description && (
             <Text style={styles.surveyDescription}>{survey.description}</Text>
           )}
-          
+
           {/* Required fields note */}
           {survey.questions.some((q: Question) => q.required) && (
             <View style={styles.requiredNote}>
@@ -195,7 +195,7 @@ const SurveyResponseScreen: React.FC<Props> = ({ route, navigation }) => {
               </Text>
             </View>
           )}
-          
+
           {survey.expiresAt && (
             <View style={styles.expirationBadge}>
               <Text style={styles.expirationText}>
@@ -453,339 +453,5 @@ const QuestionResponse: React.FC<QuestionResponseProps> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#6B7280',
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#DC2626',
-  },
-  content: {
-    flex: 1,
-  },
-  headerCard: {
-    backgroundColor: '#fff',
-    padding: 20,
-    margin: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  surveyTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  surveyDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-    lineHeight: 20,
-  },
-  requiredNote: {
-    marginTop: 12,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: '#FEE2E2',
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-  },
-  requiredNoteText: {
-    fontSize: 12,
-    color: '#DC2626',
-    fontWeight: '600',
-  },
-  expirationBadge: {
-    marginTop: 12,
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-  },
-  expirationText: {
-    fontSize: 12,
-    color: '#92400E',
-    fontWeight: '600',
-  },
-  emailCard: {
-    backgroundColor: '#fff',
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  emailLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  alreadyRespondedCard: {
-    backgroundColor: '#F0FDF4',
-    padding: 24,
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#86EFAC',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  alreadyRespondedIcon: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
-  alreadyRespondedTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#166534',
-    marginBottom: 8,
-  },
-  alreadyRespondedText: {
-    fontSize: 14,
-    color: '#166534',
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  backButton: {
-    backgroundColor: '#22C55E',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    shadowColor: '#22C55E',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  backButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  questionCard: {
-    backgroundColor: '#fff',
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  questionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 12,
-  },
-  required: {
-    color: '#DC2626',
-  },
-  questionImageContainer: {
-    marginBottom: 12,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  questionImage: {
-    width: '100%',
-    height: 200,
-  },
-  input: {
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: '#111827',
-    minHeight: 50,
-  },
-  optionsContainer: {
-    gap: 8,
-  },
-  optionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    padding: 12,
-  },
-  optionButtonSelected: {
-    backgroundColor: '#FEE2E2',
-    borderColor: '#DC2626',
-  },
-  radio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#9CA3AF',
-    marginRight: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioSelected: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#DC2626',
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 2,
-    borderColor: '#9CA3AF',
-    borderRadius: 4,
-    marginRight: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkmark: {
-    fontSize: 14,
-    color: '#DC2626',
-    fontWeight: 'bold',
-  },
-  optionText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#374151',
-  },
-  optionTextSelected: {
-    color: '#DC2626',
-    fontWeight: '600',
-  },
-  dropdownContainer: {
-    marginTop: 4,
-  },
-  dropdownOptionsWrapper: {
-    gap: 8,
-  },
-  dropdownLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  dropdown: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    padding: 12,
-  },
-  dropdownText: {
-    fontSize: 14,
-    color: '#111827',
-  },
-  dropdownPlaceholder: {
-    fontSize: 14,
-    color: '#9CA3AF',
-  },
-  dropdownIcon: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  scaleContainer: {
-    marginTop: 4,
-  },
-  scaleLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  scaleLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  scaleButtons: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  scaleButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scaleButtonSelected: {
-    backgroundColor: '#DC2626',
-    borderColor: '#DC2626',
-  },
-  scaleButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  scaleButtonTextSelected: {
-    color: '#fff',
-  },
-  noOptionsText: {
-    fontSize: 14,
-    color: '#DC2626',
-    fontStyle: 'italic',
-    padding: 12,
-    textAlign: 'center',
-  },
-  submitContainer: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-  submittingIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  submittingText: {
-    fontSize: 14,
-    color: '#DC2626',
-    fontWeight: '600',
-  },
-});
 
 export default SurveyResponseScreen;

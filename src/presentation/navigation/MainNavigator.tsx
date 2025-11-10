@@ -1,9 +1,9 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import MySurveysScreen from '../screens/MySurveysScreen';
-import SurveyEditorScreen from '../screens/SurveyEditorScreen';
-import SurveyResultsScreen from '../screens/SurveyResultsScreen';
-import SurveyResponseScreen from '../screens/SurveyResponseScreen';
+import MySurveysScreen from '../screens/my-surveys/MySurveysScreen';
+import SurveyEditorScreen from '../screens/survey-editor/SurveyEditorScreen';
+import SurveyResultsScreen from '../screens/survey-results/SurveyResultsScreen';
+import SurveyResponseScreen from '../screens/survey-response/SurveyResponseScreen';
 import { MainStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<MainStackParamList>();

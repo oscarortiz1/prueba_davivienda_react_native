@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { CustomInput } from '../components/CustomInput';
-import { CustomButton } from '../components/CustomButton';
-import { useAuth } from '../hooks/useAuth';
-import { validateEmail, validatePassword, validateName } from '../../shared/utils/validations';
-import { commonStyles } from '../theme/styles';
-import { COLORS } from '../../shared/constants/colors';
-import { AuthStackParamList } from '../navigation/types';
+import { CustomInput } from '../../components/CustomInput';
+import { CustomButton } from '../../components/CustomButton';
+import { useAuth } from '../../hooks/useAuth';
+import { validateEmail, validatePassword, validateName } from '../../../shared/utils/validations';
+import { COLORS } from '../../../shared/constants/colors';
+import { AuthStackParamList } from '../../navigation/types';
+import { styles } from './RegisterScreen.styles';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
 
@@ -16,7 +16,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({ name: '', email: '', password: '' });
-  
+
   const { register, isLoading } = useAuth();
 
   const validate = (): boolean => {
@@ -119,52 +119,3 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     </KeyboardAvoidingView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-    maxWidth: 500,
-    width: '100%',
-    alignSelf: 'center',
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  icon: {
-    fontSize: 56,
-    marginBottom: 16,
-    textShadowColor: 'rgba(237, 28, 36, 0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: COLORS.primary,
-    textAlign: 'center',
-    marginBottom: 4,
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 18,
-    color: COLORS.gray,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  formContainer: {
-    width: '100%',
-  },
-  linkButton: {
-    marginTop: 24,
-    alignItems: 'center',
-    padding: 12,
-  },
-  linkText: {
-    color: COLORS.primary,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-});
